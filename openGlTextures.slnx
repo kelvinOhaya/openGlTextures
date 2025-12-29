@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="openGlTextures/openGlTextures.vcxproj" Id="ec648a35-a35b-4d74-83e1-a5222234d119" />
+</Solution>
