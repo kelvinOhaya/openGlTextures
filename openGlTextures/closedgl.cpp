@@ -1,5 +1,4 @@
 #include "shader.h"
-#include "stb_image.h"
 #include <GLAD/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -42,29 +41,24 @@ int main()
    //---------------------------------------------------------------
    //vertices for our square
     float vertices[] = {
-        // positions      // colors         // texture coords
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f // top left
+    0.5f, 0.5f, 0.0f, // top right
+    0.5f, -0.5f, 0.0f, // bottom right
+    -0.5f, -0.5f, 0.0f, // bottom left
+    -0.5f, 0.5f, 0.0f // top left
     };
-
     unsigned int indices[] = { // note that we start from 0!
-        0, 1, 3, // first triangle
-        1, 2, 3 // second triangle
+    0, 1, 3, // first triangle
+    1, 2, 3 // second triangle
     };
 
+    unsigned int VBO, VAO, EBO;
 
-    unsigned int VBO, VAO, EBO, texture;
-
-    //buffer creation
+    //vertex buffer creation
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glGenVertexArrays(1, &VAO);
-    glGenTextures(1, &texture);
 
-    //BINDING & FORMATTING
-    //--------------------------------------------------------------------------------      
+    //BINDING
     //VAO & EBO
     glBindVertexArray(VAO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -75,42 +69,8 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     //attribute pointer (VAO)
-    //position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    //color
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(GL_FLOAT)));
-    glEnableVertexAttribArray(1);
-    //texture
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(GL_FLOAT)));
-    glEnableVertexAttribArray(2);
-
-
-    //TEXTURE
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    //loading in texture (pg. 59)
-    int width, height, nrChannels; //nrChannels = number of color channels
-    unsigned char* data = stbi_load("textures/container.jpg", &width, &height, &nrChannels, 0);
-
-    //generate the image and mimaps if data exists
-    if (data)
-    {
-        //pg. 60 or https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else {
-        std::cout << "failed to load textures" << std::endl;
-    }
-
-    //free our data
-    stbi_image_free(data);
-
 
     //our file paths for the shader object
     const char* vertexPath = "shaders/vertexShader.txt";
@@ -129,7 +89,11 @@ int main()
         
         //use the shader object now
         myShader.use();
-       
+        
+        //update the color uniform vertex with the code above
+        int vertexColorLocation = glGetUniformLocation(myShader.ID, "ourColor");
+        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        
         //draw the elements
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
