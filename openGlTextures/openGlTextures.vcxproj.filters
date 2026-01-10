@@ -35,17 +35,26 @@
     <ClInclude Include="stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="glm\glm\glm.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="shaders\fragmentShader.txt">
+    <Text Include="shaders\shader.frag">
       <Filter>Source Files</Filter>
     </Text>
-    <Text Include="shaders\vertexShader.txt">
+    <Text Include="shaders\shader.vert">
       <Filter>Source Files</Filter>
     </Text>
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\container.jpg">
+      <Filter>Source Files\Resource Files</Filter>
+    </Image>
+    <Image Include="textures\sky.png">
+      <Filter>Source Files\Resource Files</Filter>
+    </Image>
+    <Image Include="textures\mario.png">
       <Filter>Source Files\Resource Files</Filter>
     </Image>
   </ItemGroup>

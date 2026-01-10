@@ -138,15 +138,18 @@
     <ClCompile Include="stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="glm\glm\glm.hpp" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="shaders\fragmentShader.txt" />
-    <Text Include="shaders\vertexShader.txt" />
+    <Text Include="shaders\shader.frag" />
+    <Text Include="shaders\shader.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\container.jpg" />
+    <Image Include="textures\mario.png" />
+    <Image Include="textures\sky.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
