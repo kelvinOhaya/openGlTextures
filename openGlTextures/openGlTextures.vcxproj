@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -132,24 +132,39 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="buffers\ElementBuffer.cpp" />
+    <ClCompile Include="buffers\VertexAttribute.cpp" />
+    <ClCompile Include="buffers\VertexBuffer.cpp" />
     <ClCompile Include="glad.c" />
+    <ClCompile Include="ImageLoader.cpp" />
     <ClCompile Include="openGlTextures.cpp" />
     <ClCompile Include="shader.cpp" />
+    <ClCompile Include="Shape.cpp" />
     <ClCompile Include="stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="buffers\ElementBuffer.h" />
+    <ClInclude Include="buffers\VertexAttribute.h" />
+    <ClInclude Include="buffers\VertexBuffer.h" />
     <ClInclude Include="glm\glm\glm.hpp" />
+    <ClInclude Include="camera.h" />
+    <ClInclude Include="ImageLoader.h" />
     <ClInclude Include="shader.h" />
+    <ClInclude Include="Shape.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="shaders\shader.frag" />
-    <Text Include="shaders\shader.vert" />
+    <Text Include="shaders\cubeShader.frag" />
+    <Text Include="shaders\cubeShader.vert" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\container.jpg" />
     <Image Include="textures\mario.png" />
     <Image Include="textures\sky.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\lightShader.frag" />
+    <None Include="shaders\lightShader.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
