@@ -32,7 +32,7 @@ void Shape::printModelMatrix()
     }
 }
 
-Shape::Shape(float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera)
+Shape::Shape(float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1))
 {
     glm::mat4 identity(1.0f);
     glm::mat4 translated(glm::translate(identity, pos));
@@ -173,6 +173,40 @@ void Shape::bindBuffers()
     VAO = std::make_unique<VertexAttribute>();
     VAO->addPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     VAO->addPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(GL_FLOAT)));
+}
+
+glm::vec3 Shape::getColor()
+{
+    return color;
+}
+
+void Shape::setColor(ShapeColor op) {
+    switch (op) {
+    case ShapeColor::RED:
+        color = glm::vec3(1.0f, 0.0f, 0.0f);
+        break;
+    case ShapeColor::GREEN:
+        color = glm::vec3(0.0f, 1.0f, 0.0f);
+        break;
+    case ShapeColor::BLUE:
+        color = glm::vec3(0.0f, 0.0f, 1.0f);
+        break;
+    case ShapeColor::YELLOW:
+        color = glm::vec3(1.0f, 1.0f, 0.0f);
+        break;
+    case ShapeColor::CYAN:
+        color = glm::vec3(0.0f, 1.0f, 1.0f);
+        break;
+    case ShapeColor::MAGENTA:
+        color = glm::vec3(1.0f, 0.0f, 1.0f);
+        break;
+    case ShapeColor::WHITE:
+        color = glm::vec3(1.0f, 1.0f, 1.0f);
+        break;
+    case ShapeColor::BLACK:
+        color = glm::vec3(0.0f, 0.0f, 0.0f);
+        break;
+    }
 }
 
 

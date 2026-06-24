@@ -12,6 +12,17 @@
 #include <array>
 #include "camera.h"
 #include <optional>
+enum class ShapeColor {
+	RED,
+	GREEN,
+	BLUE,
+	YELLOW,
+	CYAN,
+	MAGENTA,
+	WHITE,
+	BLACK
+};
+
 class Shape
 {
 private:
@@ -19,6 +30,7 @@ private:
 	std::unique_ptr<VertexBuffer> VBO;
 	std::unique_ptr<VertexAttribute> VAO;
 	glm::mat4 modelMatrix;
+	glm::vec3 color;
 
 	//member functions
     glm::vec3 getNormal(glm::vec3 left, glm::vec3 center, glm::vec3 right);
@@ -77,6 +89,7 @@ public:
 	void addNormals();
 	void draw();
 	void bindBuffers();
-	
+	glm::vec3 getColor();
+	void setColor(ShapeColor op);
 };
 

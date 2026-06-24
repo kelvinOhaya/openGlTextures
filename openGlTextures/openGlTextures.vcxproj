@@ -137,6 +137,7 @@
     <ClCompile Include="buffers\VertexBuffer.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="ImageLoader.cpp" />
+    <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="openGlTextures.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="Shape.cpp" />
@@ -149,6 +150,7 @@
     <ClInclude Include="glm\glm\glm.hpp" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="ImageLoader.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="stb_image.h" />

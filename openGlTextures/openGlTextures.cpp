@@ -12,6 +12,7 @@
 #include "buffers/VertexBuffer.h"
 #include "Shape.h"
 #include "buffers/VertexAttribute.h"
+#include "Mesh.h"
 
 //GLOBALS
 //screen dimensions
@@ -64,6 +65,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 int main()
 {
+    Mesh mesh = Mesh();
+   
+    mesh.walkTest();
     //initialize GLFW with hints
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -96,20 +100,12 @@ int main()
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glEnable(GL_DEPTH_TEST);
 
-
-    //VERTEX CREATION & BUFFER BINDING
-   //---------------------------------------------------------------
-   //vertices for our square
-
-
-
-
-
     unsigned int texture1, texture2;
 
     glm::vec3 pos(0,0,0);
     camera.setInitialFocus(pos);
     Shape shape = Shape(1, 2, 1, pos, camera);
+    shape.setColor(ShapeColor::CYAN);
 
 
     glGenTextures(1, &texture1);
@@ -153,13 +149,12 @@ int main()
         cubeShader.setMatrix4f("view", view);
         cubeShader.setMatrix4f("model", shape.getModelMatrix());
         cubeShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        cubeShader.setVec3("objectColor", glm::vec3(0.0f, 0.5f, 0.3f));
+        cubeShader.setVec3("objectColor", shape.getColor());
         cubeShader.setVec3("lightPos", glm::vec3(trueLight.x, trueLight.y, trueLight.z));
         cubeShader.setVec3("viewPos", camera.Position);
         //draw the elements
         shape.draw();
 
-        
 
 
         //swap the frame buffers
@@ -167,7 +162,7 @@ int main()
         glfwPollEvents();
     }
     //de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------------
 
     glfwTerminate();
     return 0;
@@ -230,9 +225,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     lastX = xpos;
     lastY = ypos;
     if ((cursorEnabled && isDragging) || (!cursorEnabled)) { camera.ProcessMouseMovement((float)xoffset, (float)yoffset); }
-    std::cout << camera.Position.x << ", ";
-    std::cout << camera.Position.y << ", ";
-    std::cout << camera.Position.z << "\n\n";
+    //print camera position
+    //std::cout << camera.Position.x << ", ";
+    //std::cout << camera.Position.y << ", ";
+    //std::cout << camera.Position.z << "\n\n";
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
