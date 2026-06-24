@@ -42,11 +42,11 @@ struct Origin {
 Origin origin;
 
 //camera
-glm::vec3 position(0,0,-4);
+glm::vec3 position(4,4,-4);
 Camera camera(position);
 
 //LIGHTING
-glm::vec3 lightPos(1.0f, 2.0f, 2.0f);
+glm::vec3 lightPos(4.0f, 4.0f, 2.0f);
 double lightRotationSpeed = 0;
 float lightRotateAcceleration = 1.02;
 

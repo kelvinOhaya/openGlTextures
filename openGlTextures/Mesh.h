@@ -7,6 +7,9 @@
 #include <iostream>
 #include <unordered_map>
 #include <glm/gtx/hash.hpp>
+#include <string>
+#include <sstream>
+#include <fstream>
 
 class Mesh {
 public:
@@ -66,6 +69,7 @@ public:
     //map of existing vertices
     std::map<glm::vec3, int, Vec3Less> vertexRecord;
 
+
     //a record of indices which will be used for flattening
     std::vector<unsigned int> indices;
 
@@ -91,7 +95,11 @@ public:
     void walkTest();
     void makeSampleDiamond();
     void makeSpaceship();
+    void printVertices();
+    void printIndices();
+    void printVerticesAndIndices();
 
     //constructor
     Mesh() = default;
+    Mesh(std::string filename);
 };

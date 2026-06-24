@@ -24,6 +24,7 @@ void Mesh::makeTriangle(glm::vec3 pos0, glm::vec3 pos1, glm::vec3 pos2)
 	indices.push_back(v1);
 	indices.push_back(v2);
 	
+	
 	int h0 = createEdge(v0, v1);
 	int h1 = createEdge(v1, v2);
 	int h2 = createEdge(v2, v0);
@@ -66,6 +67,7 @@ void Mesh::makeTriangle(glm::vec3 pos0, glm::vec3 pos1, glm::vec3 pos2)
 	}
 
 }
+
 
 Mesh::HalfEdge& Mesh::createHalfEdge(HalfEdge& twin, HalfEdge& prev, HalfEdge& next, Vertex& origin, Face& face, Vertex& to)
 {
@@ -306,4 +308,70 @@ void Mesh::makeSpaceship() {
 	// ==========================================
 	makeTriangle(glm::vec3(-0.4f, -0.2f, -1.5f), glm::vec3(0.4f, -0.2f, -1.5f), glm::vec3(0.0f, 0.4f, -1.5f)); // Upper Half
 	makeTriangle(glm::vec3(-0.4f, -0.2f, -1.5f), glm::vec3(0.0f, -0.5f, -1.5f), glm::vec3(0.4f, -0.2f, -1.5f)); // Lower Half
+}
+
+void Mesh::printVertices()
+{
+	std::cout << "VERTICES:\n";
+	for (auto& v : vertices) {
+		std::cout << v.pos.x << ", " << v.pos.y << ", " << v.pos.z << std::endl;
+	}
+}
+
+void Mesh::printIndices() {
+	std::cout << "INDICES:\n";
+	for (size_t it = 0;  auto& i : indices) {
+		std::cout << i << (((it+1) % 3 == 0 && it > 0) ? "\n" : ", ");
+		it+= 1;
+	}
+}
+
+void Mesh::printVerticesAndIndices() {
+	printVertices();
+	printIndices();
+}
+
+Mesh::Mesh(std::string filename)
+{
+	if (filename.find(".obj") == std::string::npos) {throw std::runtime_error("must be a .obj file");}
+
+	std::ifstream objFile(filename);
+	std::string line;
+	std::string word;
+	std::vector<glm::vec3> temPosLst;
+
+
+	while (std::getline(objFile, line)) {
+
+		std::istringstream iss(line);
+		std::vector<std::string> splitLine;
+
+		while (iss >> word) {
+			splitLine.push_back(word);
+		}
+
+		if (splitLine[0] == "v") {
+			float x = std::stof(splitLine[1]);
+			float y = std::stof(splitLine[2]);
+			float z = std::stof(splitLine[3]);
+
+			temPosLst.push_back(glm::vec3(x, y, z));
+		}
+		else if (splitLine[0] == "f") {
+			//get indices (-1 bc indices in .obj are 1 indexed)
+			unsigned int i1 = std::stoul(splitLine[1])-1;
+			unsigned int i2 = std::stoul(splitLine[2])-1;
+			unsigned int i3 = std::stoul(splitLine[3])-1;
+
+
+			glm::vec3 p1 = temPosLst[i1];
+			glm::vec3 p2 = temPosLst[i2];
+			glm::vec3 p3 = temPosLst[i3];
+
+			makeTriangle(p1, p2, p3);
+		}
+	}
+	objFile.close();
+
+	
 }

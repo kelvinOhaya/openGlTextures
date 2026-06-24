@@ -33,20 +33,21 @@ void Shape::printModelMatrix()
     }
 }
 
-Shape::Shape(float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1))
+Shape::Shape(float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1)), mesh("models/cow.obj")
 {
     glm::mat4 identity(1.0f);
     glm::mat4 translated(glm::translate(identity, pos));
     modelMatrix = glm::scale(translated, glm::vec3(width, height, depth));
 
+
+    mesh.printStructure();
   
-    mesh.makeSpaceship(); 
     addNormals();
     //turn shape into raw data
     flatten();
     bindBuffers();
     //print said data
-    printRawData();
+    //printRawData();
         
 }
 
@@ -67,20 +68,9 @@ void Shape::flatten(){
 
 }
 
-const float* Shape::getRawData()
-{
-    return rawData.data.data();
-}
-
-unsigned int Shape::getRawSize()
-{
-    return rawData.data.size() * sizeof(float);
-}
-
-glm::mat4 Shape::getModelMatrix()
-{
-    return modelMatrix;
-}
+const float* Shape::getRawData(){return rawData.data.data();}
+unsigned int Shape::getRawSize(){return rawData.data.size() * sizeof(float);}
+glm::mat4 Shape::getModelMatrix(){return modelMatrix;}
 
 void Shape::printRawData()
 {
@@ -126,7 +116,7 @@ void Shape::draw()
     VBO->bind();
     VAO->bind();
     EBO->bind();
-    glDrawElements(GL_LINE_LOOP, mesh.indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_LINES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
 }
 
 void Shape::bindBuffers()
@@ -139,10 +129,7 @@ void Shape::bindBuffers()
     VAO->addPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(GL_FLOAT)));
 }
 
-glm::vec3 Shape::getColor()
-{
-    return color;
-}
+glm::vec3 Shape::getColor(){return color;}
 
 void Shape::setColor(ShapeColor op) {
     switch (op) {
@@ -178,21 +165,15 @@ Shape::Vertex::Vertex(const float* pos):coords(pos[0],pos[1],pos[2]),x(pos[0]),y
 { 
 }
 
-Shape::Vertex::Vertex(glm::vec3 pos):coords(pos.x, pos.y, pos.z),x(pos.x),y(pos.y),z(pos.z)
-{
-}
+Shape::Vertex::Vertex(glm::vec3 pos):coords(pos.x, pos.y, pos.z),x(pos.x),y(pos.y),z(pos.z){}
 
-Shape::Vertex::Vertex(float x, float y, float z):coords(x,y,z),x(x),y(y),z(z)
-{
-}
+Shape::Vertex::Vertex(float x, float y, float z):coords(x,y,z),x(x),y(y),z(z){}
 
 void Shape::Vertex::flatten( float* target) {
    float* raw = glm::value_ptr(coords);
    target[0] = raw[0];
    target[1] = raw[1];
    target[2] = raw[2];
-
-
 }
 
 
