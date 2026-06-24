@@ -1,6 +1,6 @@
 #include "ElementBuffer.h"
 
-ElementBuffer::ElementBuffer(const float* indices, unsigned int size)
+ElementBuffer::ElementBuffer(const unsigned int* indices,size_t size)
 {
 	glGenBuffers(1, &bufferId);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferId);

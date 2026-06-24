@@ -10,7 +10,7 @@ out vec3 FragPos;
 void main()
 {
 	//transformations are done from right to left
-	gl_Position = projection*model*view*vec4(aPos, 1.0f);
+	gl_Position = projection*view*model*vec4(aPos, 1.0f);
 
 	FragPos = vec3(model*vec4(aPos, 1.0f));
 	//calculating the new normal after model transformation

@@ -42,7 +42,7 @@ struct Origin {
 Origin origin;
 
 //camera
-glm::vec3 position(-5,2,-4);
+glm::vec3 position(0,0,-4);
 Camera camera(position);
 
 //LIGHTING
@@ -65,9 +65,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 int main()
 {
-    Mesh mesh = Mesh();
-   
-    mesh.walkTest();
     //initialize GLFW with hints
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -104,7 +101,7 @@ int main()
 
     glm::vec3 pos(0,0,0);
     camera.setInitialFocus(pos);
-    Shape shape = Shape(1, 2, 1, pos, camera);
+    Shape shape = Shape(1, 1, 1, pos, camera);
     shape.setColor(ShapeColor::CYAN);
 
 
@@ -154,8 +151,6 @@ int main()
         cubeShader.setVec3("viewPos", camera.Position);
         //draw the elements
         shape.draw();
-
-
 
         //swap the frame buffers
         glfwSwapBuffers(window);
@@ -238,7 +233,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 } 
 
 glm::mat4 rotateModel(float x, float y, float z) {
-    glm::mat4 model;
-    model = glm::rotate(model, glm::radians(x), origin.xAxis)* glm::rotate(model, glm::radians(y), origin.yAxis)* glm::rotate(model, glm::radians(z), origin.zAxis);
+    glm::mat4 model(1.0f); // <-- ADD 1.0f HERE to make it an identity matrix
+    model = glm::rotate(model, glm::radians(x), origin.xAxis) * glm::rotate(model, glm::radians(y), origin.yAxis) * glm::rotate(model, glm::radians(z), origin.zAxis);
     return model;
 }

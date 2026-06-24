@@ -1,6 +1,5 @@
 #include "Mesh.h"
 
-
 //helper data functions
 int Mesh::getOrigin(HalfEdge& h) { return vertices[h.origin].idx; }
 int Mesh::getOut(Vertex& v) { return edges[v.out].idx; }
@@ -19,6 +18,11 @@ void Mesh::makeTriangle(glm::vec3 pos0, glm::vec3 pos1, glm::vec3 pos2)
 	int v0 = createVertex(pos0);
 	int v1 = createVertex(pos1);
 	int v2 = createVertex(pos2);
+
+	//push vertex indices into indices
+	indices.push_back(v0);
+	indices.push_back(v1);
+	indices.push_back(v2);
 	
 	int h0 = createEdge(v0, v1);
 	int h1 = createEdge(v1, v2);
@@ -43,18 +47,25 @@ void Mesh::makeTriangle(glm::vec3 pos0, glm::vec3 pos1, glm::vec3 pos2)
 	edges[h2].prev = edges[h1].idx;
 
 	//connecting twins
-	edges[edges[h0].twin].next = edges[edges[h2].twin].idx;
-	edges[edges[h0].twin].prev = edges[edges[h1].twin].idx;
+	// Setup twin links if they haven't been linked to something else yet
+	int t0 = edges[h0].twin;
+	int t1 = edges[h1].twin;
+	int t2 = edges[h2].twin;
 
-	edges[edges[h1].twin].next = edges[edges[h0].twin].idx;
-	edges[edges[h1].twin].prev = edges[edges[h2].twin].idx;
-
-	edges[edges[h2].twin].next = edges[edges[h1].twin].idx;
-	edges[edges[h2].twin].prev = edges[edges[h0].twin].idx;
+	if (edges[t0].next == t0) {
+		edges[t0].next = t2;
+		edges[t0].prev = t1;
+	}
+	if (edges[t1].next == t1) {
+		edges[t1].next = t0;
+		edges[t1].prev = t2;
+	}
+	if (edges[t2].next == t2) {
+		edges[t2].next = t1;
+		edges[t2].prev = t0;
+	}
 
 }
-
-
 
 Mesh::HalfEdge& Mesh::createHalfEdge(HalfEdge& twin, HalfEdge& prev, HalfEdge& next, Vertex& origin, Face& face, Vertex& to)
 {
@@ -78,13 +89,18 @@ bool Mesh::hasEdge( int from,  int to){return (edgeRecord.find({ from,to }) != e
 
 int Mesh::createVertex(glm::vec3 pos)
 {
+	auto it = vertexRecord.find(pos);
+	if (it != vertexRecord.end()) {
+		return it->second;
+	}
+
+
 	int idx = vertices.size();
 	Vertex v(idx, pos);
 	vertices.push_back(v);
+	vertexRecord.insert(std::make_pair( pos, idx ));
 	return v.idx;
 }
-
-
 
 int Mesh::createEdge( int from,  int to)
 {
@@ -105,7 +121,9 @@ int Mesh::createEdge( int from,  int to)
 		edgeRecord.insert({ {from,to}, halfEdge.idx});
 		edgeRecord.insert({ {to, from}, twin.idx });
 
-		vertices[to].out = halfEdgeIdx;
+		if (from >= 0 && from < (int)vertices.size()) {
+			vertices[from].out = halfEdgeIdx;
+		}
 
 		return halfEdgeIdx;
 	}
@@ -141,16 +159,13 @@ void Mesh::printStructure() {
 	std::cout << "\n========================================\n";
 }
 
-
 void Mesh::walkTest() {
 	std::cout << "\n==================================================\n";
 	std::cout << "          STARTING TOPOLOGY LOOP WALK TEST          \n";
 	std::cout << "==================================================\n";
 
 	// 1. Generate the geometry
-	makeTriangle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(2.0f, 0.0f, 0.0f));
-	makeTriangle(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(2.0f, 0.0f, 0.0f));
-
+	makeSampleDiamond();
 	// Print the full asset table so we can cross-reference indices visually
 	printStructure();
 
@@ -212,3 +227,83 @@ void Mesh::walkTest() {
 	std::cout << "==================================================\n\n";
 }
 
+void Mesh::makeSampleDiamond() {
+	// First face flat on the front plane
+	makeTriangle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(2.0f, 0.0f, 0.0f));
+	// Second face pushed slightly back in space (Z = -0.5f) so it has visible 3D dimension
+	makeTriangle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, -1.0f, 0), glm::vec3(2, 0, 0));
+}
+
+void Mesh::makeSpaceship() {
+	// ==========================================
+	// 1. MAIN HULL / FUSELAGE (Nose and Body)
+	// ==========================================
+
+	// Top Nose Cone Facets
+	makeTriangle(glm::vec3(0.0f, 0.0f, 2.5f), glm::vec3(-0.3f, -0.2f, 1.0f), glm::vec3(0.0f, 0.3f, 1.0f)); // Top Left
+	makeTriangle(glm::vec3(0.0f, 0.0f, 2.5f), glm::vec3(0.0f, 0.3f, 1.0f), glm::vec3(0.3f, -0.2f, 1.0f)); // Top Right
+
+	// Bottom Nose Cone Facets
+	makeTriangle(glm::vec3(0.0f, 0.0f, 2.5f), glm::vec3(0.3f, -0.2f, 1.0f), glm::vec3(0.0f, -0.4f, 1.0f)); // Bottom Right
+	makeTriangle(glm::vec3(0.0f, 0.0f, 2.5f), glm::vec3(0.0f, -0.4f, 1.0f), glm::vec3(-0.3f, -0.2f, 1.0f)); // Bottom Left
+
+	// Fuselage Midsection (Upper Panels)
+	makeTriangle(glm::vec3(-0.3f, -0.2f, 1.0f), glm::vec3(-0.4f, -0.2f, -1.5f), glm::vec3(0.0f, 0.3f, 1.0f));
+	makeTriangle(glm::vec3(0.0f, 0.3f, 1.0f), glm::vec3(-0.4f, -0.2f, -1.5f), glm::vec3(0.0f, 0.4f, -1.5f));
+	makeTriangle(glm::vec3(0.0f, 0.3f, 1.0f), glm::vec3(0.0f, 0.4f, -1.5f), glm::vec3(0.4f, -0.2f, -1.5f));
+	makeTriangle(glm::vec3(0.0f, 0.3f, 1.0f), glm::vec3(0.4f, -0.2f, -1.5f), glm::vec3(0.3f, -0.2f, 1.0f));
+
+	// Fuselage Midsection (Lower Panels)
+	makeTriangle(glm::vec3(-0.3f, -0.2f, 1.0f), glm::vec3(0.0f, -0.4f, 1.0f), glm::vec3(-0.4f, -0.2f, -1.5f));
+	makeTriangle(glm::vec3(0.0f, -0.4f, 1.0f), glm::vec3(0.0f, -0.5f, -1.5f), glm::vec3(-0.4f, -0.2f, -1.5f));
+	makeTriangle(glm::vec3(0.0f, -0.4f, 1.0f), glm::vec3(0.4f, -0.2f, -1.5f), glm::vec3(0.0f, -0.5f, -1.5f));
+	makeTriangle(glm::vec3(0.3f, -0.2f, 1.0f), glm::vec3(0.4f, -0.2f, -1.5f), glm::vec3(0.0f, -0.4f, 1.0f));
+
+	// ==========================================
+	// 2. RAISED COCKPIT CANOPY
+	// ==========================================
+	makeTriangle(glm::vec3(0.0f, 0.3f, 0.8f), glm::vec3(-0.2f, 0.2f, 0.0f), glm::vec3(0.0f, 0.6f, -0.3f)); // Windshield L
+	makeTriangle(glm::vec3(0.0f, 0.3f, 0.8f), glm::vec3(0.0f, 0.6f, -0.3f), glm::vec3(0.2f, 0.2f, 0.0f)); // Windshield R
+	makeTriangle(glm::vec3(0.0f, 0.6f, -0.3f), glm::vec3(-0.2f, 0.2f, 0.0f), glm::vec3(0.0f, 0.4f, -1.0f)); // Canopy Back L
+	makeTriangle(glm::vec3(0.0f, 0.6f, -0.3f), glm::vec3(0.0f, 0.4f, -1.0f), glm::vec3(0.2f, 0.2f, 0.0f)); // Canopy Back R
+
+	// ==========================================
+	// 3. MAIN SWEPT WINGS (Left & Right)
+	// ==========================================
+
+	// Left Main Wing (Top & Bottom Facets for thickness)
+	makeTriangle(glm::vec3(-0.35f, -0.1f, 0.2f), glm::vec3(-2.2f, -0.3f, -1.8f), glm::vec3(-0.4f, -0.1f, -1.5f)); // Top Flight Deck
+	makeTriangle(glm::vec3(-0.35f, -0.1f, 0.2f), glm::vec3(-0.4f, -0.3f, -1.5f), glm::vec3(-2.2f, -0.3f, -1.8f)); // Underwing
+	makeTriangle(glm::vec3(-2.2f, -0.3f, -1.8f), glm::vec3(-2.0f, -0.3f, -2.1f), glm::vec3(-0.4f, -0.1f, -1.5f)); // Trailing Edge Top
+	makeTriangle(glm::vec3(-2.2f, -0.3f, -1.8f), glm::vec3(-0.4f, -0.3f, -1.5f), glm::vec3(-2.0f, -0.3f, -2.1f)); // Trailing Edge Bottom
+
+	// Right Main Wing (Top & Bottom Facets for thickness)
+	makeTriangle(glm::vec3(0.35f, -0.1f, 0.2f), glm::vec3(0.4f, -0.1f, -1.5f), glm::vec3(2.2f, -0.3f, -1.8f)); // Top Flight Deck
+	makeTriangle(glm::vec3(0.35f, -0.1f, 0.2f), glm::vec3(2.2f, -0.3f, -1.8f), glm::vec3(0.4f, -0.3f, -1.5f)); // Underwing
+	makeTriangle(glm::vec3(2.2f, -0.3f, -1.8f), glm::vec3(0.4f, -0.1f, -1.5f), glm::vec3(2.0f, -0.3f, -2.1f)); // Trailing Edge Top
+	makeTriangle(glm::vec3(2.2f, -0.3f, -1.8f), glm::vec3(2.0f, -0.3f, -2.1f), glm::vec3(0.4f, -0.3f, -1.5f)); // Trailing Edge Bottom
+
+	// ==========================================
+	// 4. FORWARD WING CANARDS (Small Front Fins)
+	// ==========================================
+	makeTriangle(glm::vec3(-0.3f, -0.1f, 1.1f), glm::vec3(-0.9f, -0.15f, 0.6f), glm::vec3(-0.32f, -0.1f, 0.5f)); // Left Canard
+	makeTriangle(glm::vec3(0.3f, -0.1f, 1.1f), glm::vec3(0.32f, -0.1f, 0.5f), glm::vec3(0.9f, -0.15f, 0.6f)); // Right Canard
+
+	// ==========================================
+	// 5. TWIN REAR VERTICAL STABILIZERS (Fins)
+	// ==========================================
+
+	// Left Tail Fin
+	makeTriangle(glm::vec3(-0.25f, 0.2f, -1.0f), glm::vec3(-0.7f, 1.1f, -2.0f), glm::vec3(-0.25f, 0.2f, -1.8f)); // Outward Face
+	makeTriangle(glm::vec3(-0.25f, 0.2f, -1.0f), glm::vec3(-0.25f, 0.2f, -1.8f), glm::vec3(-0.7f, 1.1f, -2.0f)); // Inward Face
+
+	// Right Tail Fin
+	makeTriangle(glm::vec3(0.25f, 0.2f, -1.0f), glm::vec3(0.25f, 0.2f, -1.8f), glm::vec3(0.7f, 1.1f, -2.0f)); // Outward Face
+	makeTriangle(glm::vec3(0.25f, 0.2f, -1.0f), glm::vec3(0.7f, 1.1f, -2.0f), glm::vec3(0.25f, 0.2f, -1.8f)); // Inward Face
+
+	// ==========================================
+	// 6. ENGINE THRUSTER CAP (Engine Exhaust Plate)
+	// ==========================================
+	makeTriangle(glm::vec3(-0.4f, -0.2f, -1.5f), glm::vec3(0.4f, -0.2f, -1.5f), glm::vec3(0.0f, 0.4f, -1.5f)); // Upper Half
+	makeTriangle(glm::vec3(-0.4f, -0.2f, -1.5f), glm::vec3(0.0f, -0.5f, -1.5f), glm::vec3(0.4f, -0.2f, -1.5f)); // Lower Half
+}

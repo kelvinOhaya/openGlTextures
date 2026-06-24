@@ -12,6 +12,12 @@
 #include <array>
 #include "camera.h"
 #include <optional>
+#include "buffers/ElementBuffer.h"
+#include "Mesh.h"
+#include "Shape.h"
+#include <ranges>
+#include "shader.h"
+
 enum class ShapeColor {
 	RED,
 	GREEN,
@@ -29,6 +35,7 @@ private:
 	//member variables
 	std::unique_ptr<VertexBuffer> VBO;
 	std::unique_ptr<VertexAttribute> VAO;
+	std::unique_ptr<ElementBuffer> EBO;
 	glm::mat4 modelMatrix;
 	glm::vec3 color;
 
@@ -72,12 +79,12 @@ public:
 	Shape() = delete;
 	Shape(float width, float height, float depth, const glm::vec3& pos, Camera& camera);
 
-	void flatten(RawData& rawData);
+	void flatten();
 
 	//member variables
 	std::vector<float> vertices;
 	unsigned int bufferSize;
-	std::vector<Vertex> points;
+	Mesh mesh;
 	const Camera& camera;
 
 
@@ -91,5 +98,6 @@ public:
 	void bindBuffers();
 	glm::vec3 getColor();
 	void setColor(ShapeColor op);
+
 };
 

@@ -7,6 +7,7 @@
 
 
 
+
 glm::vec3 Shape::getNormal(glm::vec3 left, glm::vec3 center, glm::vec3 right)
 {
     auto edgeOne = left - center;
@@ -38,81 +39,31 @@ Shape::Shape(float width, float height, float depth, const glm::vec3& pos, Camer
     glm::mat4 translated(glm::translate(identity, pos));
     modelMatrix = glm::scale(translated, glm::vec3(width, height, depth));
 
-    points =
-    {
-        // Back face
-        Vertex(-0.5f, -0.5f, -0.5f),
-        Vertex(0.5f, -0.5f, -0.5f),
-        Vertex(0.5f,  0.5f, -0.5f),
-        Vertex(0.5f,  0.5f, -0.5f),
-        Vertex(-0.5f,  0.5f, -0.5f),
-        Vertex(-0.5f, -0.5f, -0.5f),
-
-        // Front face
-        Vertex(-0.5f, -0.5f,  0.5f),
-        Vertex(0.5f, -0.5f,  0.5f),
-        Vertex(0.5f,  0.5f,  0.5f),
-        Vertex(0.5f,  0.5f,  0.5f),
-        Vertex(-0.5f,  0.5f,  0.5f),
-        Vertex(-0.5f, -0.5f,  0.5f),
-
-        // Left face
-        Vertex(-0.5f,  0.5f,  0.5f),
-        Vertex(-0.5f,  0.5f, -0.5f),
-        Vertex(-0.5f, -0.5f, -0.5f),
-        Vertex(-0.5f, -0.5f, -0.5f),
-        Vertex(-0.5f, -0.5f,  0.5f),
-        Vertex(-0.5f,  0.5f,  0.5f),
-
-        // Right face
-        Vertex(0.5f,  0.5f,  0.5f),
-        Vertex(0.5f,  0.5f, -0.5f),
-        Vertex(0.5f, -0.5f, -0.5f),
-        Vertex(0.5f, -0.5f, -0.5f),
-        Vertex(0.5f, -0.5f,  0.5f),
-        Vertex(0.5f,  0.5f,  0.5f),
-
-        // Bottom face
-        Vertex(-0.5f, -0.5f, -0.5f),
-        Vertex(0.5f, -0.5f, -0.5f),
-        Vertex(0.5f, -0.5f,  0.5f),
-        Vertex(0.5f, -0.5f,  0.5f),
-        Vertex(-0.5f, -0.5f,  0.5f),
-        Vertex(-0.5f, -0.5f, -0.5f),
-
-        // Top face
-        Vertex(-0.5f,  0.5f, -0.5f),
-        Vertex(0.5f,  0.5f, -0.5f),
-        Vertex(0.5f,  0.5f,  0.5f),
-        Vertex(0.5f,  0.5f,  0.5f),
-        Vertex(-0.5f,  0.5f,  0.5f),
-        Vertex(-0.5f,  0.5f, -0.5f)
-    };
-
-    //fill up the normals vector with, well, normal coordinates
+  
+    mesh.makeSpaceship(); 
     addNormals();
     //turn shape into raw data
-    flatten(rawData);
+    flatten();
     bindBuffers();
     //print said data
-    //printRawData();
+    printRawData();
         
 }
 
-void Shape::flatten( RawData& rawData){
+void Shape::flatten(){
+
     //put the raw points into data
-    for (const auto& vertex : points) {
+    for (int i = 0; i < mesh.vertices.size(); i++) {
         //push points into the row
-        rawData.data.push_back(vertex.x);
-        rawData.data.push_back(vertex.y);
-        rawData.data.push_back(vertex.z);
+        rawData.data.push_back(mesh.vertices[i].pos.x);
+        rawData.data.push_back(mesh.vertices[i].pos.y);
+        rawData.data.push_back(mesh.vertices[i].pos.z);
 
         //push normals into the row
-        rawData.data.push_back(vertex.normal.x);
-        rawData.data.push_back(vertex.normal.y);
-        rawData.data.push_back(vertex.normal.z);
+        rawData.data.push_back(mesh.vertices[i].normal.x);
+        rawData.data.push_back(mesh.vertices[i].normal.y);
+        rawData.data.push_back(mesh.vertices[i].normal.z);
     }
-
 
 }
 
@@ -134,6 +85,7 @@ glm::mat4 Shape::getModelMatrix()
 void Shape::printRawData()
 {
     //print said data
+    std::cout << "VERTICES AND NORMALS: \n";
     for (size_t i = 0; float d : rawData.data) {
         std::cout << ((d >= 0) ? " " : "") << d << ", ";
         if ((i + 1) % 6 == 0 && i > 0) {
@@ -141,36 +93,48 @@ void Shape::printRawData()
         }
         i++;
     }
+
+    std::cout << "\n\nINDICES: \n";
+    for (size_t i = 0; i < mesh.indices.size(); i+= 3) {
+        std::cout << mesh.indices[i] << ", " << mesh.indices[i + 1] << ", " << mesh.indices[i + 2] << "\n";
+    }
 }
 
 void Shape::addNormals()
 {
-    for (size_t i = 0; i < points.size(); i += 3) {
+    for (size_t i = 0; i < mesh.indices.size(); i += 3) {
         glm::vec3 left, center, right;
+        
+        int v0 = mesh.indices[i];
+        int v1 = mesh.indices[i + 1];
+        int v2 = mesh.indices[i + 2];
 
-        left = points[i].coords;
-        center = points[i + 1].coords;
-        right = points[i + 2].coords;
-
+        left = mesh.vertices[v0].pos;
+        center = mesh.vertices[v1].pos;
+        right = mesh.vertices[v2].pos;
 
         glm::vec3 result = getNormal(left, center, right);
 
-        points[i].normal = result;
-        points[i + 1].normal = result;
-        points[i + 2].normal = result;
+        mesh.vertices[v0].normal = result;
+        mesh.vertices[v1].normal = result;
+        mesh.vertices[v2].normal = result;
     }
 }
 
 void Shape::draw()
 {
+    VBO->bind();
     VAO->bind();
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    EBO->bind();
+    glDrawElements(GL_LINE_LOOP, mesh.indices.size(), GL_UNSIGNED_INT, 0);
 }
 
 void Shape::bindBuffers()
 {
     VBO = std::make_unique<VertexBuffer>(getRawData(), getRawSize());
     VAO = std::make_unique<VertexAttribute>();
+    EBO = std::make_unique<ElementBuffer>(mesh.indices.data(), mesh.indices.size() * sizeof(unsigned int));
+
     VAO->addPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     VAO->addPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(GL_FLOAT)));
 }

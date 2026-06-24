@@ -5,15 +5,26 @@
 #include <utility>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <unordered_map>
+#include <glm/gtx/hash.hpp>
 
 class Mesh {
 public:
-    // ==========================================
-    // DATA STRUCTS
-    // ==========================================
+    //structs
+
+    //less than struct that allows us to use vec3 as a key in vertexRecord, since vec3 doesn't have a less than operator
+    struct Vec3Less {
+        bool operator()(const glm::vec3& a, const glm::vec3& b) const {
+            if (a.x != b.x) return a.x < b.x;
+            if (a.y != b.y) return a.y < b.y;
+            return a.z < b.z;
+        }
+    };
+
     struct Vertex {
         int idx = -1;
         glm::vec3 pos = glm::vec3(0.0f);
+        glm::vec3 normal = glm::vec3(0.0f);
         int out = -1;
 
         Vertex() = default;
@@ -43,19 +54,23 @@ public:
         }
     };
 
-    // ==========================================
-    // STORAGE CONTAINERS
-    // ==========================================
+    //storage containers
     std::vector<Vertex> vertices;
     std::vector<HalfEdge> edges;
     std::vector<Face> faces;
 
-    // Explicitly using std::pair<int, int> as the key type
+    // map of the existing records
+    //{{fromIdx, toIdx}, edgeIdx}
     std::map<std::pair<int, int>, int> edgeRecord;
 
-    // ==========================================
-    // CORE METHODS
-    // ==========================================
+    //map of existing vertices
+    std::map<glm::vec3, int, Vec3Less> vertexRecord;
+
+    //a record of indices which will be used for flattening
+    std::vector<unsigned int> indices;
+
+    //methods
+    //creates a vertex if one doesnt exist already
     int createVertex(glm::vec3 pos);
     int createEdge(int from, int to);
     void makeTriangle(glm::vec3 pos0, glm::vec3 pos1, glm::vec3 pos2);
@@ -64,9 +79,7 @@ public:
     int getEdgeFromRecord(int from, int to);
     bool hasEdge(int from, int to);
 
-    // ==========================================
-    // HELPERS & TESTING
-    // ==========================================
+    //utility
     int getOrigin(HalfEdge& h);
     int getOut(Vertex& v);
     int getTo(HalfEdge& h);
@@ -76,4 +89,9 @@ public:
     int getBoundary(Face& f);
     void printStructure();
     void walkTest();
+    void makeSampleDiamond();
+    void makeSpaceship();
+
+    //constructor
+    Mesh() = default;
 };
