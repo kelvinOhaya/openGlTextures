@@ -5,13 +5,7 @@
 #include "buffers/VertexBuffer.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp> 
-#ifdef __EMSCRIPTEN__
-#include <GLES3/gl3.h> // For WebGL 2.0
-#else
-#include <glad/glad.h> // Your original desktop loader
-#endif
-
-
+#include <glad/glad.h> 
 #include <iostream>
 #include <array>
 #include "camera.h"

@@ -4,6 +4,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+
 #include "ImageLoader.h"
 #include "camera.h"
 #include "shader.h"
@@ -12,7 +16,6 @@
 #include "Shape.h"
 #include "buffers/VertexAttribute.h"
 #include "Mesh.h"
-#include "../../../../../../../../vcpkg/installed/x64-windows/include/GLFW/glfw3.h"
 
 //GLOBALS
 //screen dimensions
@@ -81,8 +84,6 @@ int main()
 
     //make this window the current context
     glfwMakeContextCurrent(window);
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
     //initialzie glad
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Error loading GLAD: failed to initialize" << std::endl;
@@ -101,7 +102,7 @@ int main()
 
     glm::vec3 pos(0,0,0);
     camera.setInitialFocus(pos);
-    Shape shape = Shape("models/dragon.obj", 1, 1, 1, pos, camera);
+    Shape shape = Shape("models/bunny.obj", 20, 20, 20, pos, camera);
     shape.setColor(ShapeColor::WHITE);
 
 
@@ -112,8 +113,27 @@ int main()
     Shader cubeShader("shaders/cubeShader.vert", "shaders/cubeShader.frag");
     Shader lightShader("shaders/lightShader.vert", "shaders/lightShader.frag");
    
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init();
+
     //rendering loop
     while (!glfwWindowShouldClose(window)) {
+
+        //ui
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ImGui::Begin("Camera Settings");
+        ImGui::SliderFloat("Camera speed", &camera.MovementSpeed, 0, 40);
+        ImGui::End();
+
+
         float currentFrame = glfwGetTime();
         if (cursorEnabled) {
             glfwSetInputMode(window, GLFW_CURSOR,GLFW_CURSOR_NORMAL );
@@ -124,7 +144,9 @@ int main()
         DELTA_TIME = currentFrame - lastFrame;
         lastFrame = currentFrame;
        
-        processInput(window);
+        if (const auto& io = ImGui::GetIO(); !io.WantCaptureMouse && !io.WantCaptureKeyboard) {
+            processInput(window);
+        }
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -153,13 +175,19 @@ int main()
         //draw the elements
         shape.draw();
 
+        //render ui
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         //swap the frame buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     //de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------
-
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glfwTerminate();
     return 0;
 }
@@ -193,10 +221,10 @@ void processInput(GLFWwindow* window) {
 //callbacks
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        if (action == GLFW_PRESS) {
+        if (const auto& io = ImGui::GetIO(); action == GLFW_PRESS &&(!io.WantCaptureMouse && !io.WantCaptureKeyboard)) {
             isDragging = true;
         }
-        else if (action == GLFW_RELEASE) {
+        else if (action == GLFW_RELEASE && isDragging) {
             isDragging = false;
         }
     }
@@ -209,18 +237,19 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-    
+{ 
     if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
     }
+
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
-    if ((cursorEnabled && isDragging) || (!cursorEnabled)) { camera.ProcessMouseMovement((float)xoffset, (float)yoffset); }
+
+    if ((isDragging) || !cursorEnabled) { camera.ProcessMouseMovement((float)xoffset, (float)yoffset); }
     //print camera position
     //std::cout << camera.Position.x << ", ";
     //std::cout << camera.Position.y << ", ";
@@ -229,8 +258,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     
-        camera.ProcessMouseScroll((float)yoffset);
-   
+    ImGuiIO& io = ImGui::GetIO();
+    if(!io.WantCaptureMouse) {camera.ProcessMouseScroll((float)yoffset);}
 } 
 
 glm::mat4 rotateModel(float x, float y, float z) {
