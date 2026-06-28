@@ -2,6 +2,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 uniform mat4 view, model, projection;
+uniform mat3 inverseNormal;
 
 out vec2 texCoord;
 out vec3 Normal;
@@ -14,5 +15,5 @@ void main()
 
 	FragPos = vec3(model*vec4(aPos, 1.0f));
 	//calculating the new normal after model transformation
-	Normal = mat3(transpose(inverse(model))) * aNormal;
+	Normal = inverseNormal * aNormal;
 }

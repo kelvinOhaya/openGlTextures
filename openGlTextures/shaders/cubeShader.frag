@@ -11,23 +11,28 @@ in vec3 FragPos;
 
 void main()
 {
-	float specularStrength = 0.5;
-	vec3 viewDir = normalize(viewPos - FragPos);
-	vec3 lightDir = normalize(lightPos - FragPos);
-	float ambientStrength = 0.3;
-	vec3 ambient = lightColor*ambientStrength;
-	
-	vec3 norm = normalize(Normal);
-	vec3 reflectDir = reflect(-lightDir, norm);
-	
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = specularStrength * spec * lightColor;
-	
-	vec3 lightDirection = normalize(lightPos-FragPos);
-	float diffuseImpact = max(dot(lightDirection,norm), 0.0);
-	vec3 diffuse = diffuseImpact*lightColor;
-	vec3 result = (diffuse+ambient+specular)*objectColor;
-	
-	FragColor = vec4(result, 1.0);
-	
+    // 1. Ambient Component
+    float ambientStrength = 0.3;
+    vec3 ambient = lightColor * ambientStrength;
+    
+    // 2. Vectors Setup
+    vec3 norm = normalize(Normal);
+    // Use a unified dynamic direction from the fragment to the actual light position
+    vec3 lightDir = normalize(lightPos - FragPos);
+    vec3 viewDir = normalize(viewPos - FragPos);
+    
+    // 3. Diffuse Component
+    float diffuseImpact = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diffuseImpact * lightColor;
+    
+    // 4. Specular Component (Phong Reflection Model)
+    float specularStrength = 0.5;
+    // Reflect expects vector pointing from light source TO fragment, so we negate lightDir
+    vec3 reflectDir = reflect(-lightDir, norm); 
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightColor;
+    
+    // 5. Final Assembly
+    vec3 result = (ambient + diffuse + specular) * objectColor;
+    FragColor = vec4(result, 1.0);
 }

@@ -33,16 +33,15 @@ void Shape::printModelMatrix()
     }
 }
 
-Shape::Shape(float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1)), mesh("models/cow.obj")
+Shape::Shape(std::string filename, float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1)), mesh(filename)
 {
     glm::mat4 identity(1.0f);
     glm::mat4 translated(glm::translate(identity, pos));
     modelMatrix = glm::scale(translated, glm::vec3(width, height, depth));
 
 
-    mesh.printStructure();
-  
-    addNormals();
+    //mesh.printStructure();
+
     //turn shape into raw data
     flatten();
     bindBuffers();
@@ -105,9 +104,14 @@ void Shape::addNormals()
 
         glm::vec3 result = getNormal(left, center, right);
 
-        mesh.vertices[v0].normal = result;
-        mesh.vertices[v1].normal = result;
-        mesh.vertices[v2].normal = result;
+        mesh.vertices[v0].normal += result;
+        mesh.vertices[v1].normal += result;
+        mesh.vertices[v2].normal += result;
+    }
+    for (auto& vert : mesh.vertices) {
+        if (glm::length(vert.normal) > 0.0f) {
+            vert.normal = glm::normalize(vert.normal);
+        }
     }
 }
 
@@ -116,7 +120,8 @@ void Shape::draw()
     VBO->bind();
     VAO->bind();
     EBO->bind();
-    glDrawElements(GL_LINES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
 }
 
 void Shape::bindBuffers()
@@ -161,20 +166,7 @@ void Shape::setColor(ShapeColor op) {
 }
 
 
-Shape::Vertex::Vertex(const float* pos):coords(pos[0],pos[1],pos[2]),x(pos[0]),y(pos[1]),z(pos[2])
-{ 
-}
 
-Shape::Vertex::Vertex(glm::vec3 pos):coords(pos.x, pos.y, pos.z),x(pos.x),y(pos.y),z(pos.z){}
-
-Shape::Vertex::Vertex(float x, float y, float z):coords(x,y,z),x(x),y(y),z(z){}
-
-void Shape::Vertex::flatten( float* target) {
-   float* raw = glm::value_ptr(coords);
-   target[0] = raw[0];
-   target[1] = raw[1];
-   target[2] = raw[2];
-}
 
 
 

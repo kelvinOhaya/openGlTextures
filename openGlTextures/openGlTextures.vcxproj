@@ -156,6 +156,7 @@
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="CMakeLists.txt" />
     <Text Include="shaders\cubeShader.frag" />
     <Text Include="shaders\cubeShader.vert" />
   </ItemGroup>

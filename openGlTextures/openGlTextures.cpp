@@ -1,5 +1,4 @@
 #include <GLAD/glad.h>
-#include <GLFW/glfw3.h>
 #include <glm/detail/setup.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -13,6 +12,7 @@
 #include "Shape.h"
 #include "buffers/VertexAttribute.h"
 #include "Mesh.h"
+#include "../../../../../../../../vcpkg/installed/x64-windows/include/GLFW/glfw3.h"
 
 //GLOBALS
 //screen dimensions
@@ -101,8 +101,8 @@ int main()
 
     glm::vec3 pos(0,0,0);
     camera.setInitialFocus(pos);
-    Shape shape = Shape(1, 1, 1, pos, camera);
-    shape.setColor(ShapeColor::CYAN);
+    Shape shape = Shape("models/dragon.obj", 1, 1, 1, pos, camera);
+    shape.setColor(ShapeColor::WHITE);
 
 
     glGenTextures(1, &texture1);
@@ -149,6 +149,7 @@ int main()
         cubeShader.setVec3("objectColor", shape.getColor());
         cubeShader.setVec3("lightPos", glm::vec3(trueLight.x, trueLight.y, trueLight.z));
         cubeShader.setVec3("viewPos", camera.Position);
+        cubeShader.setMatrix3f("inverseNormal", glm::mat3(glm::transpose(glm::inverse(shape.getModelMatrix()))));
         //draw the elements
         shape.draw();
 

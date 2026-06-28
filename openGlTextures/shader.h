@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <glm/detail/setup.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -31,6 +30,7 @@ public:
 	void setFloat(const char* name, float value) const;
 	//setting 4x4 matrix uniform variables
 	void setMatrix4f(const char* name, glm::mat4 value) const;
+	void setMatrix3f(const char* name, glm::mat3 value) const;
 	void setVec3(const char* name, glm::vec3 value) const;
 
 };

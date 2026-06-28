@@ -4,8 +4,12 @@
 #include "buffers/VertexAttribute.h"
 #include "buffers/VertexBuffer.h"
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/detail/setup.hpp>
 #include <glm/gtc/type_ptr.hpp> 
+#ifdef __EMSCRIPTEN__
+#include <GLES3/gl3.h> // For WebGL 2.0
+#else
+#include <glad/glad.h> // Your original desktop loader
+#endif
 
 
 #include <iostream>
@@ -32,10 +36,6 @@ enum class ShapeColor {
 class Shape
 {
 private:
-	//member variables
-	std::unique_ptr<VertexBuffer> VBO;
-	std::unique_ptr<VertexAttribute> VAO;
-	std::unique_ptr<ElementBuffer> EBO;
 	glm::mat4 modelMatrix;
 	glm::vec3 color;
 
@@ -59,11 +59,9 @@ private:
 	
 		glm::vec3 coords;
 		glm::vec3 normal;
-		Vertex(const float* pos);
-		Vertex(glm::vec3 pos);
-		Vertex(float x, float y, float z);
+
 		//flatten the vertex into a raw array
-		void flatten( float* target);
+		void flatten();
 		friend std::ostream& operator<<(std::ostream& os, const Vertex& vertexObj) {
 			return os << "Coordinates: " << "( x:" << vertexObj.coords.x << ", y:" << vertexObj.coords.y << ", z:" << vertexObj.coords.z << " )" << std::endl;
 		}
@@ -74,14 +72,18 @@ private:
 
 	
 public:
+	
 	RawData rawData;
 	//constructor
 	Shape() = delete;
-	Shape(float width, float height, float depth, const glm::vec3& pos, Camera& camera);
+	Shape(std::string filename, float width, float height, float depth, const glm::vec3& pos, Camera& camera);
 
 	void flatten();
 
 	//member variables
+	std::unique_ptr<VertexBuffer> VBO;
+	std::unique_ptr<VertexAttribute> VAO;
+	std::unique_ptr<ElementBuffer> EBO;
 	std::vector<float> vertices;
 	unsigned int bufferSize;
 	Mesh mesh;

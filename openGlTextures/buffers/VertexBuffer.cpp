@@ -7,7 +7,9 @@ VertexBuffer::VertexBuffer(const float*  vertices, unsigned int size)
 	glBufferData(GL_ARRAY_BUFFER, size,vertices, GL_STATIC_DRAW);
 }
 
-
+unsigned int VertexBuffer::getId() {
+	return bufferId;
+}
 
 VertexBuffer::~VertexBuffer()
 {

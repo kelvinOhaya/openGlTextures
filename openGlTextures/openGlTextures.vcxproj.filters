@@ -85,6 +85,7 @@
     <Text Include="shaders\cubeShader.vert">
       <Filter>Source Files</Filter>
     </Text>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="textures\container.jpg">

@@ -1,5 +1,5 @@
 #pragma once
-
+#define GLM_ENABLE_EXPERIMENTAL
 #include <vector>
 #include <map>
 #include <utility>
@@ -10,11 +10,13 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 class Mesh {
 public:
-    //structs
-
+    
     //less than struct that allows us to use vec3 as a key in vertexRecord, since vec3 doesn't have a less than operator
     struct Vec3Less {
         bool operator()(const glm::vec3& a, const glm::vec3& b) const {
@@ -22,6 +24,15 @@ public:
             if (a.y != b.y) return a.y < b.y;
             return a.z < b.z;
         }
+    };
+
+    struct RawFace {
+        //raw strings
+        std::string s1, s2, s3;
+    };
+    struct ThreadResult {
+        std::vector<glm::vec3> vertices;
+        std::vector<RawFace> faces;
     };
 
     struct Vertex {
@@ -64,10 +75,10 @@ public:
 
     // map of the existing records
     //{{fromIdx, toIdx}, edgeIdx}
-    std::map<std::pair<int, int>, int> edgeRecord;
+    std::unordered_map<uint64_t, int> edgeRecord;
 
-    //map of existing vertices
-    std::map<glm::vec3, int, Vec3Less> vertexRecord;
+    //unordered_map of existing vertices
+    std::unordered_map<int, int> vertexRecord;
 
 
     //a record of indices which will be used for flattening
@@ -75,13 +86,36 @@ public:
 
     //methods
     //creates a vertex if one doesnt exist already
-    int createVertex(glm::vec3 pos);
+    int createVertex(int recordIdx, glm::vec3 pos, glm::vec3 normal);
     int createEdge(int from, int to);
-    void makeTriangle(glm::vec3 pos0, glm::vec3 pos1, glm::vec3 pos2);
-    HalfEdge& createHalfEdge(HalfEdge& twin, HalfEdge& prev, HalfEdge& next, Vertex& origin, Face& face, Vertex& to);
 
+    //create a triangle using the following indices for vertices
+    //@param v0 index to the left vertex
+    //@param v1 index to the middle vertex
+    //@param v2 index to the right vertex
+    void makeTriangle(int v0, int v1, int v2);
+
+    //returns a 64 bit integer combining from and to
+    //used for looking up keys in edgeRecord
+    //@param from index of the starting vertex
+    //@param to index of the vertex the edge points to
+    uint64_t makeRecordKey(int from, int to);
+
+    //returns an edge from edgeRecord
+    //@param from index of the starting vertex
+    //@param to index of the vertex the edge points to
     int getEdgeFromRecord(int from, int to);
+
+    //checks if an edge starting at **from** and ending at **to** exists
+    //@param from index of the starting vertex
+    //@param to index of the vertex the edge points to
     bool hasEdge(int from, int to);
+
+    //function that simultaneously fills up the vertices aray and creates a triangle with said vertices
+    //@param mesh current mesh from assimp to iterate on
+    void parseMesh(aiMesh* mesh);
+    //recursively looks through chi
+    void parseNode(aiNode* node, const aiScene* scene);
 
     //utility
     int getOrigin(HalfEdge& h);
@@ -92,9 +126,7 @@ public:
     int getPrev(HalfEdge& h);
     int getBoundary(Face& f);
     void printStructure();
-    void walkTest();
-    void makeSampleDiamond();
-    void makeSpaceship();
+    //void walkTest();
     void printVertices();
     void printIndices();
     void printVerticesAndIndices();
