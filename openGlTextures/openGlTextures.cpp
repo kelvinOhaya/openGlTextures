@@ -19,8 +19,8 @@
 
 //GLOBALS
 //screen dimensions
-int WIDTH = 800;
-int HEIGHT = 800;
+int WIDTH = 1400;
+int HEIGHT = 1400;
 bool isDragging = false;
 bool cursorEnabled = true;
 
@@ -61,8 +61,7 @@ glm::mat4 rotateModel(float x, float y, float z);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-
-
+std::string getVec3DebugLog(std::string title, glm::vec3& vec);
 
 
 
@@ -100,9 +99,9 @@ int main()
 
     unsigned int texture1, texture2;
 
-    glm::vec3 pos(0,0,0);
+    glm::vec3 pos(0);
     camera.setInitialFocus(pos);
-    Shape shape = Shape("models/bunny.obj", 20, 20, 20, pos, camera);
+    Shape shape = Shape("models/bunny.obj", 10, 10, 10, pos, camera);
     shape.setColor(ShapeColor::WHITE);
 
 
@@ -121,18 +120,47 @@ int main()
     
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
-
+    std::string currentPos;
+    std::string rotationValue;
+ 
     //rendering loop
     while (!glfwWindowShouldClose(window)) {
-
+        currentPos = getVec3DebugLog("Position", shape.translation);
+        rotationValue = "\nRotation:\nX: " + std::to_string(shape.rotateX) + "\nY: " + std::to_string(shape.rotateY) + "\nZ: " + std::to_string(shape.rotateZ);
         //ui
+        ImGuiSliderFlags_AlwaysClamp;
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGui::Begin("Camera Settings");
-        ImGui::SliderFloat("Camera speed", &camera.MovementSpeed, 0, 40);
+        ImGui::InputFloat("Camera speed", &camera.MovementSpeed, 1, 5);
         ImGui::End();
 
+        ImGui::Begin("Model");
+        ImGui::Text("Rotation");
+        ImGui::SliderFloat("X-axis", &shape.rotateX, 0, 360);
+        ImGui::SliderFloat("Y-axis", &shape.rotateY, 0, 360);
+        ImGui::SliderFloat("Z-axis", &shape.rotateZ, 0, 360);
+
+        ImGui::Text("Position");
+        ImGui::SliderFloat("X-axis##xx", &shape.translation.x, 0, 360);
+        ImGui::SliderFloat("Y-axis##xx", &shape.translation.y, 0, 360);
+        ImGui::SliderFloat("Z-axis##xx", &shape.translation.z, 0, 360);
+        ImGui::End();
+
+        ImGui::Begin("Debugging");
+        ImGui::Text(currentPos.c_str());
+        ImGui::Text(rotationValue.c_str());
+        ImGui::End();
+
+        ImGui::Begin("Performance Metrics");
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+            1000.0f / ImGui::GetIO().Framerate,
+            ImGui::GetIO().Framerate);
+
+        ImGui::End();
+
+        shape.updateModelMatrix();
 
         float currentFrame = glfwGetTime();
         if (cursorEnabled) {
@@ -166,12 +194,12 @@ int main()
         projection = glm::perspective(glm::radians(camera.Zoom), (float)(WIDTH / HEIGHT), 0.1f, 100.0f);
         cubeShader.setMatrix4f("projection", projection);
         cubeShader.setMatrix4f("view", view);
-        cubeShader.setMatrix4f("model", shape.getModelMatrix());
+        cubeShader.setMatrix4f("model", shape.modelMatrix);
         cubeShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
         cubeShader.setVec3("objectColor", shape.getColor());
         cubeShader.setVec3("lightPos", glm::vec3(trueLight.x, trueLight.y, trueLight.z));
         cubeShader.setVec3("viewPos", camera.Position);
-        cubeShader.setMatrix3f("inverseNormal", glm::mat3(glm::transpose(glm::inverse(shape.getModelMatrix()))));
+        cubeShader.setMatrix3f("inverseNormal", glm::mat3(glm::transpose(glm::inverse(shape.modelMatrix))));
         //draw the elements
         shape.draw();
 
@@ -267,3 +295,7 @@ glm::mat4 rotateModel(float x, float y, float z) {
     model = glm::rotate(model, glm::radians(x), origin.xAxis) * glm::rotate(model, glm::radians(y), origin.yAxis) * glm::rotate(model, glm::radians(z), origin.zAxis);
     return model;
 }
+
+std::string getVec3DebugLog(std::string title, glm::vec3& vec) {
+    return title + ":\nX: " + std::to_string(vec.x) + "\nY: " + std::to_string(vec.y) + "\nZ: " + std::to_string(vec.z);
+};

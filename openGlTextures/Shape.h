@@ -30,7 +30,7 @@ enum class ShapeColor {
 class Shape
 {
 private:
-	glm::mat4 modelMatrix;
+
 	glm::vec3 color;
 
 	//member functions
@@ -79,13 +79,33 @@ public:
 	std::unique_ptr<VertexAttribute> VAO;
 	std::unique_ptr<ElementBuffer> EBO;
 	std::vector<float> vertices;
+
+	//model vectors
+	glm::vec3 rotation;
+	glm::vec3 translation;
+	glm::vec3 scale;
+
+	glm::mat4 translationMatrix;
+	glm::mat4 rotationMatrix;
+	glm::mat4 scaleMatrix;
 	unsigned int bufferSize;
+
+	//rotation values
+	float rotateX = 0.0f; 
+	float rotateY = 0.0f; 
+	float rotateZ = 0.0f;
+	
+	//translation values
+	float translateX = 1.0f; 
+	float translateY = 1.0f; 
+	float translateZ = 1.0f;
+	glm::mat4 modelMatrix;
 	Mesh mesh;
 	const Camera& camera;
 
 
 	//methods
-	glm::mat4 getModelMatrix();
+	void updateModelMatrix();
 	const float* getRawData();
 	unsigned int getRawSize();
 	void printRawData();

@@ -33,11 +33,10 @@ void Shape::printModelMatrix()
     }
 }
 
-Shape::Shape(std::string filename, float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1)), mesh(filename)
+Shape::Shape(std::string filename, float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1)), mesh(filename), translation(pos), scale(glm::vec3(width, height, depth))
 {
-    glm::mat4 identity(1.0f);
-    glm::mat4 translated(glm::translate(identity, pos));
-    modelMatrix = glm::scale(translated, glm::vec3(width, height, depth));
+
+    updateModelMatrix();
 
 
     //mesh.printStructure();
@@ -69,7 +68,8 @@ void Shape::flatten(){
 
 const float* Shape::getRawData(){return rawData.data.data();}
 unsigned int Shape::getRawSize(){return rawData.data.size() * sizeof(float);}
-glm::mat4 Shape::getModelMatrix(){return modelMatrix;}
+
+
 
 void Shape::printRawData()
 {
@@ -87,6 +87,14 @@ void Shape::printRawData()
     for (size_t i = 0; i < mesh.indices.size(); i+= 3) {
         std::cout << mesh.indices[i] << ", " << mesh.indices[i + 1] << ", " << mesh.indices[i + 2] << "\n";
     }
+}
+
+void Shape::updateModelMatrix() {
+    glm::mat4 identity(1.0f);
+    translationMatrix = glm::translate(identity, translation);
+    rotationMatrix = glm::rotate(identity, glm::radians(rotateX), glm::vec3(1, 0, 0))* glm::rotate(identity, glm::radians(rotateY), glm::vec3(0, 1, 0))* glm::rotate(identity, glm::radians(rotateZ), glm::vec3(0, 0, 1));
+    scaleMatrix = glm::scale(identity, scale);
+    modelMatrix = translationMatrix * rotationMatrix * scaleMatrix;
 }
 
 void Shape::addNormals()
