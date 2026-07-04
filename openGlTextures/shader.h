@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <GLAD/glad.h>
-#include <GLFW/glfw3.h>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -26,6 +25,7 @@ public:
 	void setBool(const char* name, bool value) const;
 	//setting integer uniform variables
 	void setInt(const char* name, int value) const;
+	void setUnsignedInt(const char* name, unsigned int value) const;
 	//setting float uniform variables
 	void setFloat(const char* name, float value) const;
 	//setting 4x4 matrix uniform variables

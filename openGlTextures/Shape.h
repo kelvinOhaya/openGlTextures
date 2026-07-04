@@ -45,30 +45,16 @@ private:
 		std::vector<float> data;
 		int size;
 	};
-	class Vertex {
-	public:
-		float x;
-		float y;
-		float z;
 	
-		glm::vec3 coords;
-		glm::vec3 normal;
-
-		//flatten the vertex into a raw array
-		void flatten();
-		friend std::ostream& operator<<(std::ostream& os, const Vertex& vertexObj) {
-			return os << "Coordinates: " << "( x:" << vertexObj.coords.x << ", y:" << vertexObj.coords.y << ", z:" << vertexObj.coords.z << " )" << std::endl;
-		}
-		
-	};
 
 	
 
 	
 public:
-	
-	RawData rawData;
+
 	//constructor
+	RawData rawData;
+	
 	Shape() = delete;
 	Shape(std::string filename, float width, float height, float depth, const glm::vec3& pos, Camera& camera);
 
@@ -100,11 +86,15 @@ public:
 	float translateY = 1.0f; 
 	float translateZ = 1.0f;
 	glm::mat4 modelMatrix;
+
+	//other
 	Mesh mesh;
 	const Camera& camera;
+	bool hasBeenClicked = false;
 
 
 	//methods
+	void scaleMesh(float width, float height, float depth);
 	void updateModelMatrix();
 	const float* getRawData();
 	unsigned int getRawSize();

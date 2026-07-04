@@ -18,7 +18,8 @@ void main()
     // 2. Vectors Setup
     vec3 norm = normalize(Normal);
     // Use a unified dynamic direction from the fragment to the actual light position
-    vec3 lightDir = normalize(lightPos - FragPos);
+    //vec3 lightDir = normalize(lightPos - FragPos); - for positioned lighting
+    vec3 lightDir = vec3(0,1,0);
     vec3 viewDir = normalize(viewPos - FragPos);
     
     // 3. Diffuse Component

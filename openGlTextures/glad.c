@@ -623,7 +623,7 @@ PFNGLISSYNCPROC glad_glIsSync = NULL;
 PFNGLISTEXTUREPROC glad_glIsTexture = NULL;
 PFNGLISTRANSFORMFEEDBACKPROC glad_glIsTransformFeedback = NULL;
 PFNGLISVERTEXARRAYPROC glad_glIsVertexArray = NULL;
-PFNGLLINEWIDTHPROC glad_glLineWidth = NULL;
+PFNGLLINEWIDTHPROC glad_glLineWIDTH = NULL;
 PFNGLLINKPROGRAMPROC glad_glLinkProgram = NULL;
 PFNGLLOGICOPPROC glad_glLogicOp = NULL;
 PFNGLMAPBUFFERPROC glad_glMapBuffer = NULL;
@@ -978,7 +978,7 @@ static void load_GL_VERSION_1_0(GLADloadproc load) {
 	glad_glCullFace = (PFNGLCULLFACEPROC)load("glCullFace");
 	glad_glFrontFace = (PFNGLFRONTFACEPROC)load("glFrontFace");
 	glad_glHint = (PFNGLHINTPROC)load("glHint");
-	glad_glLineWidth = (PFNGLLINEWIDTHPROC)load("glLineWidth");
+	glad_glLineWIDTH = (PFNGLLINEWIDTHPROC)load("glLineWIDTH");
 	glad_glPointSize = (PFNGLPOINTSIZEPROC)load("glPointSize");
 	glad_glPolygonMode = (PFNGLPOLYGONMODEPROC)load("glPolygonMode");
 	glad_glScissor = (PFNGLSCISSORPROC)load("glScissor");

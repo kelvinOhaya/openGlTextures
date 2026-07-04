@@ -1,4 +1,4 @@
-#include <GLAD/glad.h>
+#include <glad/glad.h>
 #include <glm/detail/setup.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,65 +16,31 @@
 #include "Shape.h"
 #include "buffers/VertexAttribute.h"
 #include "Mesh.h"
+#include "Texture2D.h"
+#include "FrameBuffer.h"
+#include <GLFW/glfw3.h>
+#include "Utils.h"
 
-//GLOBALS
-//screen dimensions
-int WIDTH = 1400;
-int HEIGHT = 1400;
-bool isDragging = false;
-bool cursorEnabled = true;
-
-//timing 
-float DELTA_TIME = 0.0f;
-float lastFrame = 0.0f;
-
-//mouse coordinates
-float lastX = 0.0f;
-float lastY = 0.0f;
-bool firstMouse = true;
+using namespace Utils;
 
 //rotation speed for the model matrix
 float rotationSpeed = 100.0f;
-
-//struct for origin coordinates for rotaion
-struct Origin {
-    glm::vec3 xAxis = glm::vec3(0.1f, 0.0f, 0.0f);
-    glm::vec3 yAxis = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 zAxis = glm::vec3(0.0f, 0.0f, 1.0f);
-};
-Origin origin;
-
-//camera
-glm::vec3 position(4,4,-4);
-Camera camera(position);
 
 //LIGHTING
 glm::vec3 lightPos(4.0f, 4.0f, 2.0f);
 double lightRotationSpeed = 0;
 float lightRotateAcceleration = 1.02;
 
-
-//function declarations
-void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
-glm::mat4 rotateModel(float x, float y, float z);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-std::string getVec3DebugLog(std::string title, glm::vec3& vec);
-
+glm::mat4 view = camera.GetViewMatrix();
+glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)(Utils::WIDTH / Utils::HEIGHT), 0.1f, 100.0f);
 
 
 int main()
 {
     //initialize GLFW with hints
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+    initGlfw();
     //create window
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Texture", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(Utils::WIDTH, Utils::HEIGHT, "Smoothie", NULL, NULL);
     if (window == NULL) {
         std::cout << "Error creating the window: " << std::endl;
         glfwTerminate();
@@ -90,28 +56,39 @@ int main()
     }
 
     //set the viewport size
-    glViewport(0, 0, WIDTH, HEIGHT);
-    glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glViewport(0, 0, Utils::WIDTH, Utils::HEIGHT);
+    setGLFWCallbacks(window);
     glEnable(GL_DEPTH_TEST);
-
-    unsigned int texture1, texture2;
 
     glm::vec3 pos(0);
     camera.setInitialFocus(pos);
-    Shape shape = Shape("models/bunny.obj", 10, 10, 10, pos, camera);
+    Shape shape = Shape("models/dragon.obj", 10, 10, 10, pos, camera);
     shape.setColor(ShapeColor::WHITE);
 
-
-    glGenTextures(1, &texture1);
-    glGenTextures(1, &texture2);
-
-    //creating the shader object
+    //shader creation
     Shader cubeShader("shaders/cubeShader.vert", "shaders/cubeShader.frag");
     Shader lightShader("shaders/lightShader.vert", "shaders/lightShader.frag");
+    Shader pickerShader("shaders/pickingShader.vert", "shaders/pickingShader.frag");
+
+    //model view projection math
    
+
+    //framebuffer logic(for now)
+    FrameBuffer fbo;
+    Texture2D texture;
+    fbo.bind();
+    texture.texImage(GL_TEXTURE_2D, 0, GL_RGB32UI, Utils::WIDTH, Utils::HEIGHT, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL);
+    texture.minLinearParam();
+    texture.magLinearParam();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.getID(), 0);
+   
+    //create renderbuffer
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, Utils::WIDTH, Utils::HEIGHT);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -125,6 +102,30 @@ int main()
  
     //rendering loop
     while (!glfwWindowShouldClose(window)) {
+        fbo.bind();
+        //calculate mvp
+        view = camera.GetViewMatrix();
+        projection = glm::perspective(glm::radians(camera.Zoom), (float)(Utils::WIDTH / Utils::HEIGHT), 0.1f, 2000.0f);
+        glm::mat4 mvp = projection * view * shape.modelMatrix;
+
+        pickerShader.use();
+        pickerShader.setMatrix4f("mvp", mvp);
+        pickerShader.setMatrix4f("model", shape.modelMatrix);
+        pickerShader.setUnsignedInt("objIdx", 1);//random id since we only have one object
+        texture.unbind();
+   
+        uint32_t clearValue[] = {999,0,0,0};
+        glViewport(0, 0, Utils::WIDTH, Utils::HEIGHT);
+        glClearBufferuiv(GL_COLOR, 0, clearValue);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        texture.bind();
+        shape.draw();
+        texture.unbind();
+        fbo.unbind();
+
+        
+
+        if (processClick) handleClick(fbo, window, shape);
         currentPos = getVec3DebugLog("Position", shape.translation);
         rotationValue = "\nRotation:\nX: " + std::to_string(shape.rotateX) + "\nY: " + std::to_string(shape.rotateY) + "\nZ: " + std::to_string(shape.rotateZ);
         //ui
@@ -143,9 +144,9 @@ int main()
         ImGui::SliderFloat("Z-axis", &shape.rotateZ, 0, 360);
 
         ImGui::Text("Position");
-        ImGui::SliderFloat("X-axis##xx", &shape.translation.x, 0, 360);
-        ImGui::SliderFloat("Y-axis##xx", &shape.translation.y, 0, 360);
-        ImGui::SliderFloat("Z-axis##xx", &shape.translation.z, 0, 360);
+        ImGui::SliderFloat("X-axis##xx", &shape.translation.x, -2, 2);
+        ImGui::SliderFloat("Y-axis##xx", &shape.translation.y, -2, 2);
+        ImGui::SliderFloat("Z-axis##xx", &shape.translation.z, -2, 2);
         ImGui::End();
 
         ImGui::Begin("Debugging");
@@ -186,15 +187,12 @@ int main()
         lightRotationSpeed = 0;
         lightRotateAcceleration  = 0;
 
-        glm::mat4 lightRotateMat = rotateModel(0,0, 0);
-        glm::vec4 trueLight = lightRotateMat * glm::vec4(lightPos, 1.0f);
-        glm::mat4 cubeModel, lightModel, view, projection, cubeClipped, lightClipped;
+        glm::vec4 trueLight = glm::vec4(lightPos, 1.0f);
        
-        view = camera.GetViewMatrix();
-        projection = glm::perspective(glm::radians(camera.Zoom), (float)(WIDTH / HEIGHT), 0.1f, 100.0f);
         cubeShader.setMatrix4f("projection", projection);
         cubeShader.setMatrix4f("view", view);
         cubeShader.setMatrix4f("model", shape.modelMatrix);
+        cubeShader.setMatrix4f("mvp", mvp);
         cubeShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
         cubeShader.setVec3("objectColor", shape.getColor());
         cubeShader.setVec3("lightPos", glm::vec3(trueLight.x, trueLight.y, trueLight.z));
@@ -211,91 +209,10 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    //de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------
+    //de-allocate all resources
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     glfwTerminate();
     return 0;
 }
-
-//tells opengl what we want to do when the window resizes
-void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
-//processes all our input keys
-void processInput(GLFWwindow* window) {
-    //close the window if esc is pressed
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
-    }
-    //WASD movement
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        camera.ProcessKeyboard(FORWARD, DELTA_TIME);
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        camera.ProcessKeyboard(BACKWARD, DELTA_TIME);
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera.ProcessKeyboard(RIGHT, DELTA_TIME);
-    }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        camera.ProcessKeyboard(LEFT, DELTA_TIME);
-    }  
-}
-
-//callbacks
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        if (const auto& io = ImGui::GetIO(); action == GLFW_PRESS &&(!io.WantCaptureMouse && !io.WantCaptureKeyboard)) {
-            isDragging = true;
-        }
-        else if (action == GLFW_RELEASE && isDragging) {
-            isDragging = false;
-        }
-    }
-    else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-        if (action == GLFW_PRESS) {
-            cursorEnabled = !cursorEnabled;
-        }
-    }
-}
-
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{ 
-    if (firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
-
-    if ((isDragging) || !cursorEnabled) { camera.ProcessMouseMovement((float)xoffset, (float)yoffset); }
-    //print camera position
-    //std::cout << camera.Position.x << ", ";
-    //std::cout << camera.Position.y << ", ";
-    //std::cout << camera.Position.z << "\n\n";
-}
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    
-    ImGuiIO& io = ImGui::GetIO();
-    if(!io.WantCaptureMouse) {camera.ProcessMouseScroll((float)yoffset);}
-} 
-
-glm::mat4 rotateModel(float x, float y, float z) {
-    glm::mat4 model(1.0f); // <-- ADD 1.0f HERE to make it an identity matrix
-    model = glm::rotate(model, glm::radians(x), origin.xAxis) * glm::rotate(model, glm::radians(y), origin.yAxis) * glm::rotate(model, glm::radians(z), origin.zAxis);
-    return model;
-}
-
-std::string getVec3DebugLog(std::string title, glm::vec3& vec) {
-    return title + ":\nX: " + std::to_string(vec.x) + "\nY: " + std::to_string(vec.y) + "\nZ: " + std::to_string(vec.z);
-};

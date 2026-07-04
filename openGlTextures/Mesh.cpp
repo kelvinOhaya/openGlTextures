@@ -6,6 +6,7 @@
 #include <assimp/postprocess.h>
 #include <chrono>
 
+
 //helper data functions
 int Mesh::getOrigin(HalfEdge& h) { return vertices[h.origin].idx; }
 int Mesh::getOut(Vertex& v) { return edges[v.out].idx; }
@@ -34,20 +35,23 @@ bool Mesh::hasEdge( int from,  int to){
 	return (edgeRecord.find(makeRecordKey(from,to)) != edgeRecord.end());
 }
 
-int Mesh::createVertex(int recordIdx, glm::vec3 pos, glm::vec3 normal)
+vTree Mesh::bulkInsert(std::vector<Vertex>& vertices)
 {
-	auto it = vertexRecord.find(recordIdx);
-	if (it != vertexRecord.end()) {
-		return it->second;
+	std::vector<value> points;
+	points.reserve(vertices.size());
+	for (const auto& vertex : vertices) {
+		point treePos(vertex.pos.x, vertex.pos.y, vertex.pos.z);
+		points.push_back({ treePos, const_cast<Vertex*>(&vertex) });
 	}
+	return vTree(points.begin(), points.end());
+}
 
-
-	int idx = vertices.size();
-	Vertex v(idx, pos);
-	v.normal = normal;
-	vertices.push_back(v);
-	vertexRecord.insert(std::make_pair( recordIdx, idx ));
-	return v.idx;
+Vertex* Mesh::nearestVertex(float x, float y, float z)
+{
+	std::vector<value> result;
+	point p(x,y,z);
+	bgi::query(vertexTree, bgi::nearest(p, 1), std::back_inserter(result));
+	return result[0].second;
 }
 
 int Mesh::createEdge( int from,  int to)
@@ -340,6 +344,24 @@ Mesh::Mesh(std::string filename) {
 	edgeRecord.reserve(totalFaces * 3 * 2);
 
 	parseNode(scene->mRootNode, scene);
+	vertexTree = bulkInsert(vertices);
+
+	// Get the largest containing box of the entire R-tree
+	if (!vertexTree.empty()) {
+		box bounding_box = vertexTree.bounds();
+		Vertex* near = nearestVertex(0,0,0);
+
+		std::cout << "Max containing box corners: " << std::endl;
+		std::cout << "Min corner: " << bg::get<0>(bounding_box.min_corner()) << ", "
+			<< bg::get<1>(bounding_box.min_corner()) << std::endl;
+		std::cout << "Max corner: " << bg::get<0>(bounding_box.max_corner()) << ", "
+			<< bg::get<1>(bounding_box.max_corner()) << std::endl;
+		std::cout << "Point nearest to origin: " << std::endl;
+		near->print();
+	}
+	else {
+		std::cout << "The R-tree is empty." << std::endl;
+	}
 
 	auto endTime = std::chrono::high_resolution_clock::now();
 
@@ -351,7 +373,6 @@ Mesh::Mesh(std::string filename) {
 	std::cout << "Drawing " << indices.size() << " indices.\n";
 	std::cout << "MESH GENERATION TIME: " << duration << " ms (" << (duration / 1000.0f) << " seconds)\n";
 	std::cout << "========================================\n\n";
-
 }
 
 

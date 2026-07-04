@@ -42,7 +42,7 @@ Shape::Shape(std::string filename, float width, float height, float depth, const
     //mesh.printStructure();
 
     //turn shape into raw data
-    flatten();
+    scaleMesh(width, height, depth);
     bindBuffers();
     //print said data
     //printRawData();
@@ -50,7 +50,7 @@ Shape::Shape(std::string filename, float width, float height, float depth, const
 }
 
 void Shape::flatten(){
-
+    rawData.data.clear();
     //put the raw points into data
     for (int i = 0; i < mesh.vertices.size(); i++) {
         //push points into the row
@@ -87,6 +87,16 @@ void Shape::printRawData()
     for (size_t i = 0; i < mesh.indices.size(); i+= 3) {
         std::cout << mesh.indices[i] << ", " << mesh.indices[i + 1] << ", " << mesh.indices[i + 2] << "\n";
     }
+}
+
+void Shape::scaleMesh(float width, float height, float depth)
+{
+    for (auto& v : mesh.vertices) {
+        v.pos.x *= width;
+        v.pos.y *= height;
+        v.pos.z *= depth;
+    }
+    flatten();
 }
 
 void Shape::updateModelMatrix() {
