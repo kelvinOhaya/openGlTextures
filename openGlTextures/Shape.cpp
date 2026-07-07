@@ -6,45 +6,15 @@
 #include "shader.h"
 
 
-
-
-glm::vec3 Shape::getNormal(glm::vec3 left, glm::vec3 center, glm::vec3 right)
-{
-    auto edgeOne = left - center;
-    auto edgeTwo = right - center;
-
-    auto result = glm::normalize(glm::cross(edgeOne, edgeTwo));
-
-    return result;
-}
-
-void Shape::printModelMatrix()
-{
-    // Get a flat pointer to the 16 float elements
-    const float* pSource = glm::value_ptr(modelMatrix);
-
-    // GLM is column-major, so we loop over row and col carefully
-    for (int row = 0; row < 4; ++row) {
-        for (int col = 0; col < 4; ++col) {
-            // Indexing flat 1D array from 2D coordinates
-            std::cout << pSource[col * 4 + row] << " ";
-        }
-        std::cout << "\n";
-    }
-}
-
 Shape::Shape(std::string filename, float width, float height, float depth, const glm::vec3& pos, Camera& camera):camera(camera), color(glm::vec3(1,1,1)), mesh(filename), translation(pos), scale(glm::vec3(width, height, depth))
 {
 
     updateModelMatrix();
-
-
     //mesh.printStructure();
-
-    //turn shape into raw data
-    scaleMesh(width, height, depth);
+    flatten();
     bindBuffers();
     //print said data
+    mesh.printTreeMetrics();
     //printRawData();
         
 }
@@ -135,21 +105,52 @@ void Shape::addNormals()
 
 void Shape::draw()
 {
-    VBO->bind();
     VAO->bind();
-    EBO->bind();
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
+    VAO->unbind();
+
 }
 
 void Shape::bindBuffers()
 {
-    VBO = std::make_unique<VertexBuffer>(getRawData(), getRawSize());
     VAO = std::make_unique<VertexAttribute>();
+    VBO = std::make_unique<VertexBuffer>(getRawData(), getRawSize());
     EBO = std::make_unique<ElementBuffer>(mesh.indices.data(), mesh.indices.size() * sizeof(unsigned int));
-
+    //for reading vertices
     VAO->addPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    //for reading normals
     VAO->addPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(GL_FLOAT)));
+
+    // Explicitly attach the index buffer inside the open VAO scope
+    EBO->bind();
+
+    // Seal the record safely to isolate Yoshi's state
+    VAO->unbind();
+}
+glm::vec3 Shape::getNormal(glm::vec3 left, glm::vec3 center, glm::vec3 right)
+{
+    auto edgeOne = left - center;
+    auto edgeTwo = right - center;
+
+    auto result = glm::normalize(glm::cross(edgeOne, edgeTwo));
+
+    return result;
+}
+
+void Shape::printModelMatrix()
+{
+    // Get a flat pointer to the 16 float elements
+    const float* pSource = glm::value_ptr(modelMatrix);
+
+    // GLM is column-major, so we loop over row and col carefully
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            // Indexing flat 1D array from 2D coordinates
+            std::cout << pSource[col * 4 + row] << " ";
+        }
+        std::cout << "\n";
+    }
 }
 
 glm::vec3 Shape::getColor(){return color;}

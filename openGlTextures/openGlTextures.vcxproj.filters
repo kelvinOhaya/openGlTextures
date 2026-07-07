@@ -51,7 +51,10 @@
     <ClCompile Include="Texture2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Utils.cpp">
+    <ClCompile Include="Mouse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Globals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -92,7 +95,10 @@
     <ClInclude Include="Texture2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Utils.h">
+    <ClInclude Include="Mouse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -118,5 +124,9 @@
   <ItemGroup>
     <None Include="shaders\lightShader.frag" />
     <None Include="shaders\lightShader.vert" />
+    <None Include="shaders\triangle.frag" />
+    <None Include="shaders\triangle.vert" />
+    <None Include="shaders\pickingShader.frag" />
+    <None Include="shaders\pickingShader.vert" />
   </ItemGroup>
 </Project>

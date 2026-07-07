@@ -1,5 +1,7 @@
 #pragma once
 #define GLM_ENABLE_EXPERIMENTAL
+#define _USE_MATH_DEFINES
+
 #include <vector>
 #include <map>
 #include <utility>
@@ -17,8 +19,16 @@
 #include <boost/geometry/geometries/point.hpp>
 #include <boost/geometry/geometries/box.hpp>
 #include <boost/geometry/index/rtree.hpp>
+#include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
+
 namespace bg = boost::geometry;
 namespace bgi = boost::geometry::index;
+
+struct MyTraits : public OpenMesh::DefaultTraits {
+
+    VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
+    FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
+};
 
 struct RawFace {
     //raw strings
@@ -39,7 +49,7 @@ struct Vertex {
     Vertex(int i, glm::vec3 p) : idx(i), pos(p), out(-1) {}
     void print() {
         std::cout << "Index: " << idx << std::endl;
-        std::cout << "Posiiton: (" << pos.x  << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+        std::cout << "Positon: (" << pos.x  << ", " << pos.y << ", " << pos.z << ")" << std::endl;
         std::cout << "Out Index: " << out;
     }
 };
@@ -66,6 +76,9 @@ struct HalfEdge {
         : idx(id), twin(tw), next(nx), prev(pr), origin(orig), face(f), to(t) {
     }
 };
+
+using OpenMeshTriangleMesh = OpenMesh::TriMesh_ArrayKernelT<MyTraits>;
+
 
 using point = bg::model::point<float, 3, bg::cs::cartesian>;
 
@@ -97,6 +110,8 @@ public:
     std::vector<HalfEdge> edges;
     std::vector<Face> faces;
     std::vector<unsigned int> indices;
+    OpenMeshTriangleMesh omMesh;
+
 
 
     //r tree containing pointers to our vertices
@@ -148,6 +163,9 @@ public:
     void printVertices();
     void printIndices();
     void printVerticesAndIndices();
+    void printTreeMetrics();
+    //returns tmin (earliest connection scalar factor) if the given point intersected with the mesh's bounding box
+    float pointIntersectedWithBox(glm::vec3& ray, glm::vec3& origin);
     //function for bulk instertion of vertices into the tree
     vTree bulkInsert(std::vector<Vertex>& vertices);
     Vertex* nearestVertex(float x, float y, float z);

@@ -5,6 +5,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <chrono>
+#include "Globals.h"
 
 
 //helper data functions
@@ -18,8 +19,9 @@ int Mesh::getBoundary(Face& f) { return edges[f.boundary].idx; }
 
 
 
-uint64_t Mesh::makeRecordKey(int from, int to) {
-	uint64_t recordKey = (static_cast<uint64_t>(from)) >> 32 | static_cast<uint64_t>(to);
+edgeKey Mesh::makeRecordKey(int from, int to) {
+	// BUG: >> 32 shifts 'from' completely out of existence into 0
+	uint64_t recordKey = (static_cast<uint64_t>(from)) << 32 | static_cast<uint64_t>(to); // FIX: Use << 32
 	return recordKey;
 }
 
@@ -68,7 +70,7 @@ int Mesh::createEdge( int from,  int to)
 
 	uint64_t twinKey = (static_cast<uint64_t>(to) << 32) | (static_cast<uint64_t>(from));
 	
-	//in the array, the twin will be after the edge. for now the edges will have themselves as next and prev until made otherwise
+	//in the ardirection, the twin will be after the edge. for now the edges will have themselves as next and prev until made otherwise
 	int halfEdgeIdx = edges.size();
 	int twinIdx = halfEdgeIdx + 1;
 		
@@ -208,6 +210,78 @@ void Mesh::printVerticesAndIndices() {
 	printIndices();
 }
 
+void Mesh::printTreeMetrics()
+{
+	if (!vertexTree.empty()) {
+		box bounding_box = vertexTree.bounds();
+		std::cout << "Max containing box corners: " << std::endl;
+		std::cout << "Min corner: " << bg::get<0>(bounding_box.min_corner()) << ", "
+			<< bg::get<1>(bounding_box.min_corner()) << std::endl;
+		std::cout << "Max corner: " << bg::get<0>(bounding_box.max_corner()) << ", "
+			<< bg::get<1>(bounding_box.max_corner()) << std::endl;
+	}
+	else {
+		std::cout << "The R-tree is empty." << std::endl;
+	}
+}
+
+float Mesh::pointIntersectedWithBox(glm::vec3& direction, glm::vec3& origin) {
+	//Smit's method will be used to determine box intersection
+	//More on Smit's method: https://people.csail.mit.edu/amy/papers/box-jgt.pdf
+	float tmin, tmax, tymin, tymax, tzmin, tzmax;
+	glm::vec3 invRay(1 / direction.x, 1 / direction.y, 1 / direction.z);
+	box bounds = vertexTree.bounds();
+
+	//get the minimum and maximum bounds
+	glm::vec3 minCorner(bg::get < bg::min_corner, 0>(bounds), bg::get <bg::min_corner, 1>(bounds), bg::get < bg::min_corner, 2 >(bounds));
+	glm::vec3 maxCorner(bg::get<bg::max_corner, 0>(bounds), bg::get<bg::max_corner, 1>(bounds), bg::get<bg::max_corner, 2>(bounds));
+
+	glm::vec3 boundsContainer[2] = { minCorner, maxCorner };
+	//get the signed bit of the ends of each number instead of checking whether it is greater than zero or not
+	//we could just use if statements, but this is a pretty cool optimization imo
+	int signX = std::signbit(direction.x); //get the signed bit
+	int signY = std::signbit(direction.y);
+
+	//compute distances from direction to axis
+	tmin = (boundsContainer[signX].x - origin.x) * invRay.x;
+	tmax = (boundsContainer[1 - signX].x - origin.x) * invRay.x;
+
+	tymin = (boundsContainer[signY].y - origin.y) * invRay.y;
+	tymax = (boundsContainer[1 - signY].y - origin.y) * invRay.y;
+
+	//end function early for direction passes that cant lead to intersection (eg. entering x-axis after already entering and exiting y axis)
+	if ((tmin > tymax) || (tymin > tmax)) {
+		// FIX: Return -1.0f instead of false (0.0f)
+		return -1.0f;
+	}
+
+	//update boundaries to contain both intervals
+	if (tymin > tmin) { tmin = tymin; }
+	if (tymax < tmax) { tmax = tymax; }
+
+	//compute distances from direction to z axis
+	int signZ = std::signbit(direction.z);
+	tzmin = (boundsContainer[signZ].z - origin.z) * invRay.z;
+	tzmax = (boundsContainer[1 - signZ].z - origin.z) * invRay.z;
+
+	if ((tmin > tzmax) || (tzmin > tmax)) {
+		// FIX: Return -1.0f instead of false (0.0f)
+		return -1.0f;
+	}
+
+	//update boundaries to contian all intervals
+	if (tzmin > tmin) { tmin = tzmin; }
+	if (tzmax < tmax) { tmax = tzmax; }
+
+	// FIX: Only evaluate tmin against visible space, remove strict tmax limit
+	if (tmin >= 0.0f && tmin > Globals::NEAR && tmin < Globals::FAR) {
+		return tmin;
+	}
+	else {
+		return -1.0f;
+	}
+}
+
 void Mesh::makeTriangle(int v0, int v1, int v2)
 {
 	//push vertex indices into indices
@@ -262,22 +336,21 @@ void Mesh::makeTriangle(int v0, int v1, int v2)
 void Mesh::parseMesh(aiMesh* mesh)
 {
 	size_t baseVertexOffset = vertices.size();
+
+
+	std::vector<OpenMeshTriangleMesh::VertexHandle> vHandles;
+
 	for (size_t i = 0; i < mesh->mNumVertices; i++) {
 		int globalIdx = baseVertexOffset + i;
-		glm::vec3 v;
-		v.x = mesh->mVertices[i].x;
-		v.y = mesh->mVertices[i].y;
-		v.z = mesh->mVertices[i].z;
-		
 
-		glm::vec3 n;
-		n.x = mesh->mNormals[i].x;
-		n.y = mesh->mNormals[i].y;
-		n.z = mesh->mNormals[i].z;
+		glm::vec3 v(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+		glm::vec3 n(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
 		
 		Vertex vert(globalIdx, v);
 		vert.normal = n;
 		vertices.push_back(vert);
+
+		vHandles.push_back(omMesh.add_vertex(OpenMeshTriangleMesh::Point(v.x,v.y,v.z)));
 	}
 
 	for (size_t i = 0; i < mesh->mNumFaces; i++) {
@@ -291,9 +364,17 @@ void Mesh::parseMesh(aiMesh* mesh)
 		unsigned int globalIdx1 = baseVertexOffset + face.mIndices[1];
 		unsigned int globalIdx2 = baseVertexOffset + face.mIndices[2];
 
+		this->indices.push_back(globalIdx0);
+		this->indices.push_back(globalIdx1);
+		this->indices.push_back(globalIdx2);
 
-		makeTriangle(
-			globalIdx0, globalIdx1, globalIdx2);
+		// Map them to your OpenMesh vertex handles and add the face
+		std::vector<OpenMeshTriangleMesh::VertexHandle> faceVHandles;
+		faceVHandles.push_back(vHandles[face.mIndices[0]]);
+		faceVHandles.push_back(vHandles[face.mIndices[1]]);
+		faceVHandles.push_back(vHandles[face.mIndices[2]]);
+
+		omMesh.add_face(faceVHandles);
 	}
 }
 
@@ -347,24 +428,7 @@ Mesh::Mesh(std::string filename) {
 	vertexTree = bulkInsert(vertices);
 
 	// Get the largest containing box of the entire R-tree
-	if (!vertexTree.empty()) {
-		box bounding_box = vertexTree.bounds();
-		Vertex* near = nearestVertex(0,0,0);
-
-		std::cout << "Max containing box corners: " << std::endl;
-		std::cout << "Min corner: " << bg::get<0>(bounding_box.min_corner()) << ", "
-			<< bg::get<1>(bounding_box.min_corner()) << std::endl;
-		std::cout << "Max corner: " << bg::get<0>(bounding_box.max_corner()) << ", "
-			<< bg::get<1>(bounding_box.max_corner()) << std::endl;
-		std::cout << "Point nearest to origin: " << std::endl;
-		near->print();
-	}
-	else {
-		std::cout << "The R-tree is empty." << std::endl;
-	}
-
 	auto endTime = std::chrono::high_resolution_clock::now();
-
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
 
 	// 4. Print the performance metrics to the console
