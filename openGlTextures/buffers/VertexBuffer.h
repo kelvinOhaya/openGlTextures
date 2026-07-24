@@ -14,6 +14,6 @@ public:
 	~VertexBuffer();
 	void bind();
 	void unbind();
-	void updateData(const float* data, size_t size);
+	void updateData(GLintptr offset, const float* data, size_t size);
 };
 

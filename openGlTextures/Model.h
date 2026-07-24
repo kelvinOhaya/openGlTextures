@@ -12,11 +12,10 @@
 #include <optional>
 #include "buffers/ElementBuffer.h"
 #include "Mesh.h"
-#include "Shape.h"
 #include <ranges>
 #include "shader.h"
 
-enum class ShapeColor {
+enum class ModelColor {
 	RED,
 	GREEN,
 	BLUE,
@@ -27,54 +26,47 @@ enum class ShapeColor {
 	BLACK
 };
 
-class Shape
+class Model
 {
 private:
-
-	glm::vec3 color;
-
-	//member functions
-    glm::vec3 getNormal(glm::vec3 left, glm::vec3 center, glm::vec3 right);
-	
+	glm::vec3 color = glm::vec3(0,0,0);
+	bool mIsInitialized = false;
 	//debug functions
 	void printModelMatrix();
-
 	//classes
 	class RawData {
 	public:
 		std::vector<float> data;
-		int size;
+		int size=0;
+
+		RawData() {};
+	
 	};
-	
-
-	
-
-	
+		
 public:
-
+	bool isInitialized();
 	//constructor
 	RawData rawData;
-	
-	Shape() = delete;
-	Shape(std::string filename, float width, float height, float depth, const glm::vec3& pos, Camera& camera);
-
+	void init(std::string filename);
+	 
+	Model() = default;
 	void flatten();
 
 	//member variables
-	std::unique_ptr<VertexBuffer> VBO;
-	std::unique_ptr<VertexAttribute> VAO;
-	std::unique_ptr<ElementBuffer> EBO;
+	std::unique_ptr<VertexBuffer> VBO = nullptr;
+	std::unique_ptr<VertexAttribute> VAO = nullptr;
+	std::unique_ptr<ElementBuffer> EBO = nullptr;
 	std::vector<float> vertices;
 
 	//model vectors
-	glm::vec3 rotation;
-	glm::vec3 translation;
-	glm::vec3 scale;
+	glm::vec3 rotation = glm::vec3(1.0f);
+	glm::vec3 translation = glm::vec3(1.0f);
+	float scaleFactor = 1;
 
-	glm::mat4 translationMatrix;
-	glm::mat4 rotationMatrix;
-	glm::mat4 scaleMatrix;
-	unsigned int bufferSize;
+	glm::mat4 translationMatrix = glm::mat4(1);
+	glm::mat4 rotationMatrix = glm::mat4(1);
+	glm::mat4 scaleMatrix = glm::mat4(1);
+	unsigned int bufferSize=0;
 
 	//rotation values
 	float rotateX = 0.0f; 
@@ -85,25 +77,24 @@ public:
 	float translateX = 1.0f; 
 	float translateY = 1.0f; 
 	float translateZ = 1.0f;
-	glm::mat4 modelMatrix;
+	glm::mat4 modelMatrix= glm::mat4(1.0f);
 
 	//other
-	Mesh mesh;
-	const Camera& camera;
+	std::unique_ptr<Mesh> mesh = nullptr;
 	bool hasBeenClicked = false;
 
 
 	//methods
 	void scaleMesh(float width, float height, float depth);
+	void checkIfInitialized();
 	void updateModelMatrix();
 	const float* getRawData();
 	unsigned int getRawSize();
 	void printRawData();
-	void addNormals();
 	void draw();
 	void bindBuffers();
 	glm::vec3 getColor();
-	void setColor(ShapeColor op);
+	void setColor(ModelColor op);
 
 };
 

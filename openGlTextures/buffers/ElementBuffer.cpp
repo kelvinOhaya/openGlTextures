@@ -1,7 +1,9 @@
 #include "ElementBuffer.h"
+#include <limits>
 
-ElementBuffer::ElementBuffer(const unsigned int* indices,size_t size)
+ElementBuffer::ElementBuffer(const unsigned int* indices,size_t size):bufferId(std::numeric_limits<unsigned int>::max())
 {
+
 	glGenBuffers(1, &bufferId);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferId);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indices,GL_STATIC_DRAW);

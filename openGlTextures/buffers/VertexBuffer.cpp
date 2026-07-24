@@ -34,8 +34,8 @@ void VertexBuffer::unbind()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void VertexBuffer::updateData(const float* data, size_t size) {
+void VertexBuffer::updateData(GLintptr offset, const float* data, size_t size) {
 	bind();
-	glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
 }
 

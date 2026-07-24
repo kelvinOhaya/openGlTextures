@@ -26,59 +26,15 @@ namespace bgi = boost::geometry::index;
 
 struct MyTraits : public OpenMesh::DefaultTraits {
 
-    VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
+    typedef OpenMesh::Vec4f Color;
+
+    VertexAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::TexCoord2D| OpenMesh::Attributes::Status | OpenMesh::Attributes::Color);
     FaceAttributes(OpenMesh::Attributes::Normal | OpenMesh::Attributes::Status);
 };
 
-struct RawFace {
-    //raw strings
-    std::string s1, s2, s3;
-};
-struct ThreadResult {
-    std::vector<glm::vec3> vertices;
-    std::vector<RawFace> faces;
-};
 
-struct Vertex {
-    int idx = -1;
-    glm::vec3 pos = glm::vec3(0.0f);
-    glm::vec3 normal = glm::vec3(0.0f);
-    int out = -1;
 
-    Vertex() = default;
-    Vertex(int i, glm::vec3 p) : idx(i), pos(p), out(-1) {}
-    void print() {
-        std::cout << "Index: " << idx << std::endl;
-        std::cout << "Positon: (" << pos.x  << ", " << pos.y << ", " << pos.z << ")" << std::endl;
-        std::cout << "Out Index: " << out;
-    }
-};
-
-struct Face {
-    int idx = -1;
-    int boundary = -1;
-
-    Face() = default;
-    Face(int i, int b) : idx(i), boundary(b) {}
-};
-
-struct HalfEdge {
-    int idx = -1;
-    int origin = -1;
-    int to = -1;
-    int twin = -1;
-    int next = -1;
-    int prev = -1;
-    int face = -1;
-
-    HalfEdge() = default;
-    HalfEdge(int id, int tw, int nx, int pr, int orig, int f, int t)
-        : idx(id), twin(tw), next(nx), prev(pr), origin(orig), face(f), to(t) {
-    }
-};
-
-using OpenMeshTriangleMesh = OpenMesh::TriMesh_ArrayKernelT<MyTraits>;
-
+using myMesh = OpenMesh::TriMesh_ArrayKernelT<MyTraits>;
 
 using point = bg::model::point<float, 3, bg::cs::cartesian>;
 
@@ -86,90 +42,33 @@ using point = bg::model::point<float, 3, bg::cs::cartesian>;
 using box = bg::model::box<point>;
 
 //we will hold pairs of the vertex coordinates positions (raw floats) and a pointer to the actual vertex struct to minimize memory duplication
-using value = std::pair<point, Vertex*>;
+using value = std::pair<point, myMesh::VertexHandle*>;
 
 //type alias for the vertex tree
 using vTree = bgi::rtree<value, bgi::quadratic<32>>;
 
-// map of the existing records
-// key: 64-bit integer made from the fromIdx and to toIdx pushed together
-// value: edgeIdx
-using edgeRecordMap = std::unordered_map<uint64_t, int>;
-using vertexRecordMap = std::unordered_map<int, int>;
-//a key made of combining the from and to integers in a halfedge int a 64-bit integer
-using edgeKey = uint64_t;
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 norm;
+    Vertex(glm::vec3 pos, glm::vec3 norm) : pos(pos), norm(norm) {};
+};
+
 
 class Mesh {
 public:
-
-    
-
     //storage containers
     //may have to switch to pointer-based implmentation later, as deleting/adding elements would break indices
-    std::vector<Vertex> vertices;
-    std::vector<HalfEdge> edges;
-    std::vector<Face> faces;
     std::vector<unsigned int> indices;
-    OpenMeshTriangleMesh omMesh;
+    myMesh data;
+    std::vector<myMesh::VertexHandle> vHandles;
+    std::vector<myMesh::FaceHandle> fHandles;
 
-
-
-    //r tree containing pointers to our vertices
-    vTree vertexTree;
-    vertexRecordMap vertexRecord;
-    edgeRecordMap edgeRecord;
-
-    //methods
-    int createEdge(int from, int to);
-
-    //create a triangle using the following indices for vertices
-    //@param v0 index to the left vertex
-    //@param v1 index to the middle vertex
-    //@param v2 index to the right vertex
-    void makeTriangle(int v0, int v1, int v2);
-
-    //returns a 64 bit integer combining from and to
-    //used for looking up keys in edgeRecord
-    //@param from index of the starting vertex
-    //@param to index of the vertex the edge points to
-    edgeKey makeRecordKey(int from, int to);
-
-    //returns an edge from edgeRecord
-    //@param from index of the starting vertex
-    //@param to index of the vertex the edge points to
-    int getEdgeFromRecord(int from, int to);
-
-    //checks if an edge starting at **from** and ending at **to** exists
-    //@param from index of the starting vertex
-    //@param to index of the vertex the edge points to
-    bool hasEdge(int from, int to);
-
-    //function that simultaneously fills up the vertices aray and creates a triangle with said vertices
-    //@param mesh current mesh from assimp to iterate on
-    void parseMesh(aiMesh* mesh);
-    //recursively looks through child nodes to run parseMesh on
-    void parseNode(aiNode* node, const aiScene* scene);
-
-    //utility
-    int getOrigin(HalfEdge& h);
-    int getOut(Vertex& v);
-    int getTo(HalfEdge& h);
-    int getNext(HalfEdge& h);
-    int getTwin(HalfEdge& h);
-    int getPrev(HalfEdge& h);
-    int getBoundary(Face& f);
-    void printStructure();
-    //void walkTest();
-    void printVertices();
-    void printIndices();
-    void printVerticesAndIndices();
-    void printTreeMetrics();
-    //returns tmin (earliest connection scalar factor) if the given point intersected with the mesh's bounding box
-    float pointIntersectedWithBox(glm::vec3& ray, glm::vec3& origin);
-    //function for bulk instertion of vertices into the tree
-    vTree bulkInsert(std::vector<Vertex>& vertices);
-    Vertex* nearestVertex(float x, float y, float z);
     //constructor
     Mesh() = default;
+    void parseMesh(aiMesh* mesh);
+    void parseNode(aiNode* node, const aiScene* scene);
+    Mesh(float* coords);
     Mesh(std::string filename);
+    void printVertices();
+    void printIndices();
 };

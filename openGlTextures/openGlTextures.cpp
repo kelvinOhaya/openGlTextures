@@ -13,7 +13,7 @@
 #include "shader.h"
 #include "stb_image.h"
 #include "buffers/VertexBuffer.h"
-#include "Shape.h"
+#include "Model.h"
 #include "buffers/VertexAttribute.h"
 #include "Mesh.h"
 #include "Texture2D.h"
@@ -35,7 +35,7 @@ GLFWwindow* window = nullptr;
  glm::vec3 position(4, 4, -40);
  Camera camera(position);
 
- //mouse (needs shape and camera to initialize)
+ //mouse (needs model and camera to initialize)
  Mouse mouse(window, camera);
 
  //triangle coords
@@ -53,40 +53,66 @@ GLFWwindow* window = nullptr;
  float DELTA_TIME = 0.0f;
  float lastFrame = 0.0f;
 
-
-
-
 //function declarations
 void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void handleClick(FrameBuffer& fbo, GLFWwindow* window, Shape& shape);
+void handleClick(FrameBuffer& fbo, GLFWwindow* window, Model& model);
 std::string getVec3DebugLog(std::string title, glm::vec3& vec);
+//
+//bool rayTriangleIntersect(
+//    const glm::vec3& orig, const glm::vec3& dir,
+//    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2,
+//    float& t)
+//{
+//    const float EPSILON = 0.0000001f;
+//    glm::vec3 edge1 = v1 - v0;
+//    glm::vec3 edge2 = v2 - v0;
+//    glm::vec3 h = glm::cross(dir, edge2);
+//    float a = glm::dot(edge1, h);
+//    if (a > -EPSILON && a < EPSILON) return false; // Ray is parallel to triangle
+//
+//    float f = 1.0f / a;
+//    glm::vec3 s = orig - v0;
+//    float u = f * glm::dot(s, h);
+//    if (u < 0.0f || u > 1.0f) return false;
+//
+//    glm::vec3 q = glm::cross(s, edge1);
+//    float v = f * glm::dot(dir, q);
+//    if (v < 0.0f || u + v > 1.0f) return false;
+//
+//    t = f * glm::dot(edge2, q);
+//    return t > EPSILON; // Intersection found
+//}
 
-bool rayTriangleIntersect(
-    const glm::vec3& orig, const glm::vec3& dir,
-    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2,
-    float& t)
-{
-    const float EPSILON = 0.0000001f;
-    glm::vec3 edge1 = v1 - v0;
-    glm::vec3 edge2 = v2 - v0;
-    glm::vec3 h = glm::cross(dir, edge2);
-    float a = glm::dot(edge1, h);
-    if (a > -EPSILON && a < EPSILON) return false; // Ray is parallel to triangle
-
-    float f = 1.0f / a;
-    glm::vec3 s = orig - v0;
-    float u = f * glm::dot(s, h);
-    if (u < 0.0f || u > 1.0f) return false;
-
-    glm::vec3 q = glm::cross(s, edge1);
-    float v = f * glm::dot(dir, q);
-    if (v < 0.0f || u + v > 1.0f) return false;
-
-    t = f * glm::dot(edge2, q);
-    return t > EPSILON; // Intersection found
-}
+//scratchapixel mollor trumbore ray triangle intersection
+//https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle//moller-trumbore-ray-triangle-intersection.html
+//bool rayTriangleIntersect(glm::vec3& origin, glm::vec3& direction, glm::vec3& v0, glm::vec3& v1, glm::vec3& v2, float &t) {
+//    float u, v;
+//    float epsilion = 0.000001;
+//    glm::vec3 v0v1 = v1 - v0;
+//    glm::vec3 v0v2 = v2 - v0;
+//
+//    //triple scalar method - find the dot product for the determinant
+//    glm::vec3 pvec = glm::cross(direction, v0v2);
+//    float det = glm::dot(pvec, v0v1);
+//
+//    if (det > -epsilion && det < epsilion) return false;
+//
+//    float inv = 1 / det;
+//
+//    glm::vec3 tvec = origin - v0;
+//    u = inv * glm::dot(tvec, pvec);
+//    if (u < 0 || u > 1) return false;
+//
+//    glm::vec3 qvec = glm::cross(tvec, v0v1);
+//    v = inv* glm::dot(direction, qvec);
+//    if (v < 0 || v > 1) return false;
+//
+//    t = glm::dot(v0v2, qvec) * inv;
+//
+//    return true;
+//}
 
 int main()
 {
@@ -122,11 +148,8 @@ int main()
 
     glm::vec3 pos(0);
     camera.setInitialFocus(pos);
-    Shape shape("models/yoshi.obj", 1, 1, 1, pos, camera);
-    shape.setColor(ShapeColor::WHITE);
-    std::cout << "GPU Vertex Count: " << shape.mesh.vertices.size() << std::endl;
-    std::cout << "GPU Index Count: " << shape.mesh.indices.size() << std::endl;
-    std::cout << "OpenMesh Face Count: " << shape.mesh.omMesh.n_faces() << std::endl;
+    Model model;
+    model.init("models/MarioPenguin.DAE");
 
     //shader creation
     Shader cubeShader("shaders/cubeShader.vert", "shaders/cubeShader.frag");
@@ -159,6 +182,8 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+
         if (cursorEnabled) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
@@ -166,124 +191,79 @@ int main()
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
 
-        shape.updateModelMatrix();
+        model.updateModelMatrix();
 
 
-        //calculate mvp
         //calculate mvp
         view = camera.GetViewMatrix();
         projection = camera.GetProjectionMatrix();
-        glm::mat4 mvp = projection * view * shape.modelMatrix;
+        glm::mat4 mvp = projection * view * model.modelMatrix;
 
-       
 
-       // if (mouse.leftButtonIsDown) {
-        
-        //    if (mouse.intersects(shape)) {
-        //        glm::vec3 dir = mouse.getIntersectionPoint(shape);
+        //if (mouse.leftButtonIsDown) {
+        //    if (mouse.intersects(model)) {
+        //        glm::vec3 rayOrigin = camera.Position;
+        //        glm::vec3 rayDir = mouse.castRay().direction;
 
-        //        Vertex* nearest = shape.mesh.nearestVertex(dir.x, dir.y, dir.z);
-
-        //        // 1. Get the starting half-edge
-        //        HalfEdge outEdge = shape.mesh.edges[nearest->out];
-
-        //        // 2. CRUCIAL: If this edge is an unassigned boundary seam, 
-        //        // flip over to its twin so we walk a real filled face!
-        //        if (outEdge.face == -1) {
-        //            outEdge = shape.mesh.edges[outEdge.twin];
-        //        }
-
-        //        // 3. Now we are guaranteed to be on a closed triangle loop!
-        //        HalfEdge outEdge2 = shape.mesh.edges[outEdge.next];
-        //        HalfEdge outEdge3 = shape.mesh.edges[outEdge2.next];
-
-        //        Vertex firstVertex = shape.mesh.vertices[outEdge.origin];
-        //        Vertex secondVertex = shape.mesh.vertices[outEdge2.origin];
-        //        Vertex thirdVertex = shape.mesh.vertices[outEdge3.origin];
+        //        
+     
         //       
-        //        float coordValues[9] = {
-        //            firstVertex.pos.x, firstVertex.pos.y, firstVertex.pos.z,
-        //            secondVertex.pos.x, secondVertex.pos.y, secondVertex.pos.z,
-        //            thirdVertex.pos.x, thirdVertex.pos.y, thirdVertex.pos.z
-        //        };
 
-        //        std::copy(std::begin(coordValues), std::end(coordValues), std::begin(coords));
-        //        hasSelectedTriangle = true;
-        //        std::cout << "Coordinates: " << std::endl;
-        //        for (size_t i = 1; const auto& coord : coords) {
-        //            std::cout << coord << ", " << ((i > 0 && i % 3 == 0) ? "\n" : "");
-        //            i++;
+        //        glm::mat4 invModel = glm::inverse(model.modelMatrix);
+        //        glm::vec3 localOrigin = glm::vec3(invModel * glm::vec4(rayOrigin, 1.0f));
+        //        glm::vec3 localDir = glm::normalize(glm::vec3(invModel * glm::vec4(rayDir, 0.0f)));
+
+        //        float closestT = std::numeric_limits<float>::max();
+        //        bool foundTriangle = false;
+        //        glm::vec3 trueV1(0.0f), trueV2(0.0f), trueV3(0.0f);
+
+        //        // --- SWITCH TO THE OPENMESH FACE ITERATOR ---
+        //        for (auto f_it = model.mesh.data.faces_begin(); f_it != model.mesh.data.faces_end(); ++f_it) {
+        //            
+        //            // The Face-Vertex iterator cleanly extracts the 3 connected nodes
+        //            auto fv_it = model.mesh.data.fv_iter(*f_it);
+        //            
+        //            auto p0 = model.mesh.data.point(*fv_it); ++fv_it;
+        //            auto p1 = model.mesh.data.point(*fv_it); ++fv_it;
+        //            auto p2 = model.mesh.data.point(*fv_it);
+
+        //            // Convert OpenMesh points to glm::vec3
+        //            glm::vec3 v0(p0[0], p0[1], p0[2]);
+        //            glm::vec3 v1(p1[0], p1[1], p1[2]);
+        //            glm::vec3 v2(p2[0], p2[1], p2[2]);
+
+        //            float t;
+        //            if (rayTriangleIntersect(localOrigin, localDir, v0, v1, v2, t)) {
+        //                if (t < closestT) {
+        //                    closestT = t;
+        //                    trueV1 = v0;
+        //                    trueV2 = v1;
+        //                    trueV3 = v2;
+        //                    foundTriangle = true;
+        //                }
+        //            }
         //        }
-        //        std::cout << std::endl;
 
-        //        size_t length = (sizeof(coords) / sizeof(coords[0]));
-        //        std::cout << "Length: " << length << std::endl;
+        //        if (foundTriangle) {
+        //            float coordValues[9] = {
+        //                trueV1.x, trueV1.y, trueV1.z,
+        //                trueV2.x, trueV2.y, trueV2.z,
+        //                trueV3.x, trueV3.y, trueV3.z
+        //            };
 
-        //      
+        //            std::copy(std::begin(coordValues), std::end(coordValues), std::begin(coords));
+        //            hasSelectedTriangle = true;
+        //        }
         //    }
         //}
-
-        if (mouse.leftButtonIsDown) {
-            if (mouse.intersects(shape)) {
-                glm::vec3 rayOrigin = camera.Position;
-                glm::vec3 rayDir = mouse.getIntersectionPoint(shape) - camera.Position;
-                rayDir = glm::normalize(rayDir);
-
-                glm::mat4 invModel = glm::inverse(shape.modelMatrix);
-                glm::vec3 localOrigin = glm::vec3(invModel * glm::vec4(rayOrigin, 1.0f));
-                glm::vec3 localDir = glm::normalize(glm::vec3(invModel * glm::vec4(rayDir, 0.0f)));
-
-                float closestT = std::numeric_limits<float>::max();
-                bool foundTriangle = false;
-                glm::vec3 trueV1(0.0f), trueV2(0.0f), trueV3(0.0f);
-
-                // --- SWITCH TO THE OPENMESH FACE ITERATOR ---
-                for (auto f_it = shape.mesh.omMesh.faces_begin(); f_it != shape.mesh.omMesh.faces_end(); ++f_it) {
-                    
-                    // The Face-Vertex iterator cleanly extracts the 3 connected nodes
-                    auto fv_it = shape.mesh.omMesh.fv_iter(*f_it);
-                    
-                    auto p0 = shape.mesh.omMesh.point(*fv_it); ++fv_it;
-                    auto p1 = shape.mesh.omMesh.point(*fv_it); ++fv_it;
-                    auto p2 = shape.mesh.omMesh.point(*fv_it);
-
-                    // Convert OpenMesh points to glm::vec3
-                    glm::vec3 v0(p0[0], p0[1], p0[2]);
-                    glm::vec3 v1(p1[0], p1[1], p1[2]);
-                    glm::vec3 v2(p2[0], p2[1], p2[2]);
-
-                    float t;
-                    if (rayTriangleIntersect(localOrigin, localDir, v0, v1, v2, t)) {
-                        if (t < closestT) {
-                            closestT = t;
-                            trueV1 = v0;
-                            trueV2 = v1;
-                            trueV3 = v2;
-                            foundTriangle = true;
-                        }
-                    }
-                }
-
-                if (foundTriangle) {
-                    float coordValues[9] = {
-                        trueV1.x, trueV1.y, trueV1.z,
-                        trueV2.x, trueV2.y, trueV2.z,
-                        trueV3.x, trueV3.y, trueV3.z
-                    };
-
-                    std::copy(std::begin(coordValues), std::end(coordValues), std::begin(coords));
-                    hasSelectedTriangle = true;
-                }
-            }
-        }
-        else {
-            // OPTIONAL: If you want the triangle highlight to disappear 
-            // the instant you let go of the mouse button, uncomment the line below:
-            // hasSelectedTriangle = false;
-        }
+        //else {
+        //    // OPTIONAL: If you want the triangle highlight to disappear 
+        //    // the instant you let go of the mouse button, uncomment the line below:
+        //    // hasSelectedTriangle = false;
+        //}
         
-        currentPos = getVec3DebugLog("Position", shape.translation);
-        rotationValue = "\nRotation:\nX: " + std::to_string(shape.rotateX) + "\nY: " + std::to_string(shape.rotateY) + "\nZ: " + std::to_string(shape.rotateZ);
+        currentPos = getVec3DebugLog("Position", model.translation);
+        rotationValue = "\nRotation:\nX: " + std::to_string(model.rotateX) + "\nY: " + std::to_string(model.rotateY) + "\nZ: " + std::to_string(model.rotateZ);
         //ui
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -294,14 +274,18 @@ int main()
 
         ImGui::Begin("Model");
         ImGui::Text("Rotation");
-        ImGui::SliderFloat("X-axis", &shape.rotateX, 0, 360);
-        ImGui::SliderFloat("Y-axis", &shape.rotateY, 0, 360);
-        ImGui::SliderFloat("Z-axis", &shape.rotateZ, 0, 360);
+        ImGui::SliderFloat("X-axis", &model.rotateX, 0, 360);
+        ImGui::SliderFloat("Y-axis", &model.rotateY, 0, 360);
+        ImGui::SliderFloat("Z-axis", &model.rotateZ, 0, 360);
 
         ImGui::Text("Position");
-        ImGui::SliderFloat("X-axis##xx", &shape.translation.x, -2, 2);
-        ImGui::SliderFloat("Y-axis##xx", &shape.translation.y, -2, 2);
-        ImGui::SliderFloat("Z-axis##xx", &shape.translation.z, -2, 2);
+        ImGui::SliderFloat("X-axis##xx", &model.translation.x, -20, 20);
+        ImGui::SliderFloat("Y-axis##xx", &model.translation.y, -20, 20);
+        ImGui::SliderFloat("Z-axis##xx", &model.translation.z, -20, 20);
+
+        ImGui::Text("Scale");
+        ImGui::SliderFloat("scale", &model.scaleFactor,0, 20);
+
         ImGui::End();
 
         ImGui::Begin("Debugging");
@@ -330,40 +314,41 @@ int main()
         cubeShader.use();
         cubeShader.setMatrix4f("projection", projection);
         cubeShader.setMatrix4f("view", view);
-        cubeShader.setMatrix4f("model", shape.modelMatrix);
+        cubeShader.setMatrix4f("model", model.modelMatrix);
         cubeShader.setMatrix4f("mvp", mvp);
         cubeShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        cubeShader.setVec3("objectColor", shape.getColor());
+        cubeShader.setVec3("objectColor", model.getColor());
         cubeShader.setVec3("viewPos", camera.Position);
-        cubeShader.setMatrix3f("inverseNormal", glm::mat3(glm::transpose(glm::inverse(shape.modelMatrix))));
+        cubeShader.setMatrix3f("inverseNormal", glm::mat3(glm::transpose(glm::inverse(model.modelMatrix))));
         //draw the elements
-        shape.draw();
+        model.draw();
 
 
-        if (hasSelectedTriangle) {
-            vao.bind();
-            bufferObj.bind();
-            bufferObj.updateData(coords, 9 * sizeof(float));
+        //if (hasSelectedTriangle) {
+   
+        //    vao.bind();
+        //    bufferObj.bind();
+        //    bufferObj.updateData(coords, 9 * sizeof(float));
+        //   
 
-            // Shader logic
-            triangleShader.use();
-            triangleShader.setMatrix4f("mvp", mvp);
+        //    // Shader logic
+        //    triangleShader.use();
+        //    triangleShader.setMatrix4f("mvp", mvp);
 
-            // 1. Keep depth testing ON, but enable Polygon Offset
-            
-            glDisable(GL_DEPTH_TEST);
+        //    // 1. Keep depth testing ON, but enable Polygon Offset
+        //    glDisable(GL_DEPTH_TEST);
 
-            // 2. Subtle push to bring the selection slightly forward toward the camera
-            glPolygonOffset(-1.0f, -1.0f);
+        //    // 2. Subtle push to bring the selection slightly forward toward the camera
+        //    glPolygonOffset(-1.0f, -1.0f);
 
-            // 3. Draw your clean triangle!
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+        //    // 3. Draw your clean triangle!
+        //    glDrawArrays(GL_TRIANGLES, 0, 3);
 
-            glEnable(GL_DEPTH_TEST);
+        //    glEnable(GL_DEPTH_TEST);
 
-            vao.unbind();
-            bufferObj.unbind();
-        }
+        //    vao.unbind();
+        //    bufferObj.unbind();
+        //}
 
         //render ui
         ImGui::Render();
@@ -385,11 +370,12 @@ int main()
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
+
     ImGuiIO& io = ImGui::GetIO();
     if (!io.WantCaptureMouse) { camera.ProcessMouseScroll((float)yoffset); }
 }
 
-void handleClick(FrameBuffer& fbo, GLFWwindow* window, Shape& shape) {
+void handleClick(FrameBuffer& fbo, GLFWwindow* window, Model& model) {
     fbo.bind();
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     double mouseX, mouseY;
@@ -399,8 +385,8 @@ void handleClick(FrameBuffer& fbo, GLFWwindow* window, Shape& shape) {
     glReadPixels(mouseX, Globals::HEIGHT - mouseY, 1, 1, GL_RGBA_INTEGER, GL_UNSIGNED_INT, &pixelData);
     fbo.unbind();
     uint32_t clickedObjID = pixelData[0];
-    if (clickedObjID == 1) shape.setColor(ShapeColor::MAGENTA);
-    else shape.setColor(ShapeColor::WHITE);
+    if (clickedObjID == 1) model.setColor(ModelColor::MAGENTA);
+    else model.setColor(ModelColor::WHITE);
 
     //std::cout << "ObjectID: " << clickedObjID << std::endl;
 }

@@ -10,7 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Globals.h"
 #include "camera.h"
-#include "Shape.h"
+#include "Model.h"
 
 //all functions should end with setting their respective flag to false if they want click functionality rather than holding functionality
 struct Ray {
@@ -45,9 +45,9 @@ public:
 	bool processClick = false;
 	bool leftButtonIsDown = false;
 	bool rightButtonIsDown = false;
-	void printHit(Shape& s);
-	Ray castRay();
-	bool intersects(Shape& s);
-	glm::vec3 getIntersectionPoint(Shape& s);
+	void printHit(Model& s);
+	//Ray castRay();
+	//bool intersects(Model& s);
+	//glm::vec3 getIntersectionPoint(Model& s);
 	void init(GLFWwindow* window);
 };
